@@ -1,0 +1,151 @@
+@page "/admin/hospitals/edit/{HospitalId:guid}"
+@using HQS.Domain.Entities
+@using HQS.Infrastructure.Services
+@inject HospitalService HospitalService
+@inject NavigationManager Nav
+@attribute [Authorize(Roles = "MasterAdmin")]
+
+<h3>Edit Hospital</h3>
+
+@if (_hospital == null)
+{
+    <p>Loading...</p>
+}
+else
+{
+    @* <EditForm Model="_hospital" OnValidSubmit="UpdateHospital">
+        <DataAnnotationsValidator />
+
+        <InputText @bind-Value="_hospital.Name" class="form-control" />
+        <InputText @bind-Value="_hospital.Address" class="form-control" />
+        <InputText @bind-Value="_hospital.PostalCode" class="form-control" />
+
+        <InputNumber @bind-Value="_hospital.TotalBeds" class="form-control" />
+        <InputNumber @bind-Value="_hospital.AvailableBeds" class="form-control" />
+
+        <label>Current Image</label>
+        <img src="@_hospital.ImagePath" style="max-width:200px; border-radius:6px;" />
+
+        <label>Replace Image (optional)</label>
+        <InputFile OnChange="OnImageSelected" />
+
+        @if (!string.IsNullOrEmpty(_imagePreview))
+        {
+            <img src="@_imagePreview" style="max-width:200px;" />
+        }
+
+        <button class="btn btn-success mt-3">Update</button>
+        <button type="button" class="btn btn-secondary mt-3" @onclick="Cancel">
+            Cancel
+        </button>
+    </EditForm> *@
+    <EditForm Model="_hospital" OnValidSubmit="UpdateHospital">
+        <DataAnnotationsValidator />
+
+        <div class="row">
+            <div class="col-md-8">
+                <div class="card mb-3">
+                    <div class="card-header fw-bold">Hospital Details</div>
+
+                    <div class="card-body">
+                        <div class="mb-3">
+                            <label class="form-label">Hospital Name</label>
+                            <InputText class="form-control" @bind-Value="_hospital.Name" />
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label">Address</label>
+                            <InputText class="form-control" @bind-Value="_hospital.Address" />
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label">Postal Code</label>
+                            <InputText class="form-control" @bind-Value="_hospital.PostalCode" />
+                        </div>
+
+                        <div class="row">
+                            <div class="col">
+                                <label class="form-label">Total Beds</label>
+                                <InputNumber class="form-control" @bind-Value="_hospital.TotalBeds" />
+                            </div>
+
+                            <div class="col">
+                                <label class="form-label">Available Beds</label>
+                                <InputNumber class="form-control" @bind-Value="_hospital.AvailableBeds" />
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-md-4">
+                <div class="card">
+                    <div class="card-header fw-bold">Hospital Image</div>
+
+                    <div class="card-body text-center">
+                        @if (!string.IsNullOrWhiteSpace(_hospital.ImagePath))
+                        {
+                            <img src="@_hospital.ImagePath" class="img-thumbnail mb-2" />
+                        }
+                        else
+                        {
+                            <p class="text-muted fst-italic">
+                                No image uploaded
+                            </p>
+                        }
+
+                        <InputFile OnChange="OnImageSelected" />
+
+                        @if (!string.IsNullOrEmpty(_imagePreview))
+                        {
+                            <img src="@_imagePreview" class="img-thumbnail mt-2" />
+                        }
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="mt-4">
+            <button class="btn btn-success">Update</button>
+            <button type="button" class="btn btn-outline-secondary ms-2" @onclick="Cancel">
+                Cancel
+            </button>
+        </div>
+    </EditForm>
+
+}
+@code {
+    [Parameter] public Guid HospitalId { get; set; }
+
+    private Hospital? _hospital;
+    private IBrowserFile? _newImage;
+    private string? _imagePreview;
+
+    protected override async Task OnInitializedAsync()
+    {
+        _hospital = await HospitalService.GetByIdAsync(HospitalId);
+    }
+
+    private async Task OnImageSelected(InputFileChangeEventArgs e)
+    {
+        _newImage = e.File;
+
+        using var stream = _newImage.OpenReadStream(5_000_000);
+        var buffer = new byte[_newImage.Size];
+        await stream.ReadAsync(buffer);
+        _imagePreview = $"data:{_newImage.ContentType};base64,{Convert.ToBase64String(buffer)}";
+    }
+
+    private async Task UpdateHospital()
+    {
+        if (_hospital == null) return;
+
+        await HospitalService.UpdateAsync(_hospital, _newImage);
+        Nav.NavigateTo("/admin/hospitals");
+    }
+
+    private void Cancel()
+    {
+        Nav.NavigateTo("/admin/hospitals");
+    }
+}

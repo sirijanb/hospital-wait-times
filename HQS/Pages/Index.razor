@@ -1,9 +1,102 @@
 ﻿@page "/"
+@using HQS.Domain.Entities
+@using HQS.Infrastructure.Services
+@inject HospitalService HospitalService
 
-<PageTitle>Index</PageTitle>
+<h1 class="mb-3">Hospital Queue & Wait Time Tracker</h1>
 
-<h1>Hello, world!</h1>
+<p class="lead">
+    Transparent emergency wait times to help patients make informed decisions.
+</p>
 
-Welcome to your new app.
+<hr />
 
-<SurveyPrompt Title="How is Blazor working for you?" />
+<!-- ================= ABOUT ================= -->
+<section class="mb-5">
+    <h2>About</h2>
+
+    <p>
+        Emergency departments are often overcrowded, leaving patients unaware
+        of long wait times or bed availability.
+    </p>
+
+    <p>
+        This platform enables hospitals to publish real-time operational data
+        such as wait times, queue length, and available beds — helping patients
+        choose the right facility faster and reducing overall congestion.
+    </p>
+</section>
+
+<!-- ================= EMPANELLED HOSPITALS ================= -->
+<section>
+    <h2 class="mb-3">Empanelled Hospitals</h2>
+
+    @if (_loading)
+    {
+        <p>Loading hospitals...</p>
+    }
+    else if (_hospitals.Count == 0)
+    {
+        <p>No hospitals available.</p>
+    }
+    else
+    {
+        <div class="hospital-scroll-container">
+            @foreach (var h in _hospitals)
+            {
+                <div class="hospital-card">
+                    <img src="@h.ImagePath" alt="@h.Name"
+                        style="width:100%; height:150px; object-fit:cover; border-radius:8px;" />
+
+                    <h5>@h.Name</h5>
+                    <p class="small text-muted">@h.Address</p>
+
+                    <div class="stats">
+                        <div>🛏 <strong>@h.AvailableBeds</strong> beds</div>
+                        <div>👥 <strong>@h.QueueLength</strong> in queue</div>
+                        <div>⏱ <strong>@h.WaitTimeMinutes</strong> min</div>
+                    </div>
+                </div>
+            }
+        </div>
+
+        <p class="text-muted mt-2">
+            ⬅ Scroll horizontally to view more hospitals ➡
+        </p>
+    }
+</section>
+
+<style>
+    .hospital-scroll-container {
+        display: flex;
+        gap: 1rem;
+        overflow-x: auto;
+        padding: 0.5rem 0;
+        scroll-snap-type: x mandatory;
+    }
+
+    .hospital-card {
+        min-width: 260px;
+        border: 1px solid #ddd;
+        border-radius: 10px;
+        padding: 1rem;
+        background-color: #fafafa;
+        scroll-snap-align: start;
+        flex-shrink: 0;
+    }
+
+    .stats div {
+        margin-top: 0.25rem;
+    }
+</style>
+
+@code {
+    private List<Hospital> _hospitals = new();
+    private bool _loading = true;
+
+    protected override async Task OnInitializedAsync()
+    {
+        _hospitals = await HospitalService.GetPublicHospitalsAsync();
+        _loading = false;
+    }
+}

@@ -1,0 +1,136 @@
+@page "/admin/hospitals"
+@using HQS.Domain.Entities
+@using HQS.Infrastructure.Data
+@using HQS.Infrastructure.Services
+@using HQS.Shared
+@inject HospitalService HospitalService
+@inject NavigationManager Navigation
+@attribute [Authorize(Roles = "MasterAdmin")]
+
+<h3>Hospitals Management</h3>
+
+<hr />
+<InputFile OnChange="OnImageSelected" />
+
+@if (!string.IsNullOrEmpty(_imagePreview))
+{
+    <img src="@_imagePreview" style="max-width:200px;" />
+}
+
+<!-- Add Hospital Form -->
+<EditForm Model="_newHospital" OnValidSubmit="AddHospitalAsync">
+    <DataAnnotationsValidator />
+    <ValidationSummary />
+
+    <div class="mb-2">
+        <label>Name</label>
+        <InputText class="form-control" @bind-Value="_newHospital.Name" />
+    </div>
+    <div class="mb-2">
+        <label>Address</label>
+        <InputText class="form-control" @bind-Value="_newHospital.Address" />
+    </div>
+    <div class="mb-2">
+        <label>Postal Code</label>
+        <InputText class="form-control" @bind-Value="_newHospital.PostalCode" />
+    </div>
+    <div class="mb-2">
+        <label>Total Beds</label>
+        <InputNumber class="form-control" @bind-Value="_newHospital.TotalBeds" />
+    </div>
+    <div class="mb-2">
+        <label>Open Hours</label>
+        <InputText class="form-control" @bind-Value="_newHospital.OpenHours" />
+    </div>
+
+    <button class="btn btn-success" type="submit">Add Hospital</button>
+</EditForm>
+
+<hr />
+
+<!-- Hospital List -->
+<table class="table table-striped mt-3">
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>Address</th>
+            <th>Postal Code</th>
+            <th>Total Beds</th>
+            <th>Available Beds</th>
+            <th>Queue Length</th>
+            <th>Wait Time (min)</th>
+            <th>Actions</th>
+        </tr>
+    </thead>
+    <tbody>
+        @if (_Hospitals != null)
+        {
+            foreach (var hospital in _Hospitals)
+            {
+                <tr>
+                    <td>@hospital.Name</td>
+                    <td>@hospital.Address</td>
+                    <td>@hospital.PostalCode</td>
+                    <td>@hospital.TotalBeds</td>
+                    <td>@hospital.AvailableBeds</td>
+                    <td>@hospital.QueueLength</td>
+                    <td>@hospital.WaitTimeMinutes</td>
+                    <td>
+                        <button class="btn btn-sm btn-outline-primary" @onclick="() => EditHospital(hospital.HospitalId)">
+                            Edit
+                        </button>
+                        <button class="btn btn-danger btn-sm" @onclick="() => DeleteHospitalAsync(hospital.HospitalId)">Delete
+                        </button>
+                    </td>
+                </tr>
+            }
+        }
+    </tbody>
+</table>
+
+@code {
+    private List<Hospital> _Hospitals = new();
+    private Hospital _newHospital = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadHospitalsAsync();
+    }
+
+    private async Task LoadHospitalsAsync()
+    {
+        _Hospitals = await HospitalService.GetAllHospitalsAsync();
+    }
+
+    private async Task AddHospitalAsync()
+    {
+        await HospitalService.AddAsync(_newHospital, _imageFile);
+        _newHospital = new Hospital(); // reset form
+        _imagePreview = null; // reset _imagePreview
+        await LoadHospitalsAsync();
+    }
+
+    private async Task DeleteHospitalAsync(Guid id)
+    {
+        await HospitalService.DeleteAsync(id);
+        await LoadHospitalsAsync();
+    }
+
+    private IBrowserFile? _imageFile;
+    private string? _imagePreview;
+
+    private async Task OnImageSelected(InputFileChangeEventArgs e)
+    {
+        _imageFile = e.File;
+
+        using var stream = _imageFile.OpenReadStream(maxAllowedSize: 5_000_000);
+        var buffer = new byte[_imageFile.Size];
+        await stream.ReadAsync(buffer);
+        _imagePreview = $"data:{_imageFile.ContentType};base64,{Convert.ToBase64String(buffer)}";
+    }
+
+    void EditHospital(Guid id)
+    {
+        Navigation.NavigateTo($"/admin/hospitals/edit/{id}");
+    }
+}
