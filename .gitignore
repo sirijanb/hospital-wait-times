@@ -73,3 +73,11 @@ Migrations/*.Snapshot.cs
 # Uploads (optional)
 ####################################
 wwwroot/uploads/
+
+####################################
+# NuGet
+####################################
+*.nuget.dgspec.json
+*.nuget.g.props
+*.nuget.g.targets
+project.assets.json
