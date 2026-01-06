@@ -1,0 +1,73 @@
+@page "/admin/hospital-reps"
+@using HQS.Domain.Entities
+@inject HQS.Infrastructure.Services.HospitalRepService RepService
+@attribute [Authorize(Roles = "MasterAdmin")]
+
+<h3>Hospital Representatives</h3>
+
+@if (_reps == null)
+{
+    <p>Loading...</p>
+}
+else
+{
+    <table class="table">
+        <thead>
+            <tr>
+                <th>Name</th>
+                <th>Email</th>
+                <th>Hospital</th>
+                <th>Status</th>
+                <th></th>
+            </tr>
+        </thead>
+        <tbody>
+        @foreach (var rep in _reps)
+        {
+            <tr>
+                <td>@rep.Name</td>
+                <td>@rep.Email</td>
+                <td>@rep.Hospital?.Name</td>
+                <td>
+                    @(rep.IsApproved ? "Approved" : "Pending")
+                </td>
+                <td>
+                    @if (!rep.IsApproved)
+                    {
+                        <button class="btn btn-success btn-sm"
+                                @onclick="() => Approve(rep.Id)">
+                            Approve
+                        </button>
+
+                        <button class="btn btn-danger btn-sm ms-1"
+                                @onclick="() => Reject(rep.Id)">
+                            Reject
+                        </button>
+                    }
+                </td>
+            </tr>
+        }
+        </tbody>
+    </table>
+}
+
+@code {
+    private List<HospitalRep>? _reps;
+
+    protected override async Task OnInitializedAsync()
+    {
+        _reps = await RepService.GetAllAsync();
+    }
+
+    private async Task Approve(Guid repId)
+    {
+        await RepService.ApproveAsync(repId);
+        _reps = await RepService.GetAllAsync();
+    }
+
+    private async Task Reject(Guid repId)
+    {
+        await RepService.RejectAsync(repId);
+        _reps = await RepService.GetAllAsync();
+    }
+}
