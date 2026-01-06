@@ -1,0 +1,93 @@
+@page "/login"
+@using HQS.Infrastructure.Identity
+@using Microsoft.AspNetCore.Identity
+@inject NavigationManager Navigation
+@inject IHttpContextAccessor HttpContextAccessor
+
+<h3>Login</h3>
+
+<form method="post" action="/api/auth/login">
+    <div>
+        <label>Email</label><br />
+        <input class="form-control" type="email" name="Email" required />
+    </div>
+
+    <div>
+        <label>Password</label><br />
+        <input class="form-control" type="password" name="Password" required />
+    </div>
+
+    <br />
+
+    <button class="btn btn-primary" type="submit">
+        Login
+    </button>
+</form>
+
+@if (!string.IsNullOrWhiteSpace(_error))
+{
+    <p style="color:red">@_error</p>
+}
+
+@code {
+    private string? _error;
+
+    protected override void OnInitialized()
+    {
+        // Check the URL's query string parameters
+        var uri = new Uri(Navigation.Uri);
+        var queryParams = System.Web.HttpUtility.ParseQueryString(uri.Query);
+        var errorMessage = queryParams["error"];
+
+        if (errorMessage == "unapproved")
+        {
+            _error = "Your account is not approved yet. Please contact an admin.";
+        }
+        else if (errorMessage == "invalidcredentials")
+        {
+            _error = "Invalid credentials.";
+        }
+    }
+
+    protected override void OnAfterRender(bool firstRender)
+    {
+        // We run this after rendering, or on the first render,
+        // because we might need access to the HttpContext features 
+        // to parse the initial request URL.
+       
+        if (firstRender)
+        {
+            // Use HttpContext to get the raw query string from the initial page load
+            var httpContext = HttpContextAccessor.HttpContext;
+            
+            if (httpContext != null)
+            {
+                var query = httpContext.Request.Query;
+                
+                if (query.ContainsKey("error"))
+                {
+                    var errorMessageKey = query["error"].ToString();
+                    
+                    // Map the generic error key to a user-friendly message
+                    switch (errorMessageKey)
+                    {
+                        case "invalidcredentials":
+                            _error = "Invalid credentials. Please check your email and password.";
+                            break;
+                        case "unapproved":
+                            _error = "Account not approved. Please contact the Admin.";
+                            break;
+                        // Add more cases for other specific errors you might add later
+                        default:
+                            _error = "An unknown error occurred during login.";
+                            break;
+                    }
+                    
+                    // Force the component to re-render to display the message
+                    StateHasChanged();
+                }
+            }
+        }
+    }
+
+}
