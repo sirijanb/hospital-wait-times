@@ -1,0 +1,110 @@
+@page "/register"
+@using HQS.Application.DTOs
+@using HQS.Infrastructure.DTOs
+@using HQS.Web.ViewModels
+@using HQS.Infrastructure.Services
+@inject HospitalRepService RepService
+@inject HospitalService HospitalService
+
+
+<h3>Hospital Representative Registration Form</h3>
+
+<EditForm Model="_model" OnValidSubmit="RegisterAsync">
+    <DataAnnotationsValidator />
+    <ValidationSummary />
+
+    <div>
+        <label>Full Name</label>
+        <InputText class="form-control" @bind-Value="_model.Name" />
+    </div>
+
+    <div>
+        <label>Email</label><br />
+        <InputText class="form-control" type="email" @bind-Value="_model.Email" />
+    </div>
+
+    <div>
+        <label>Password</label><br />
+        <InputText class="form-control" type="password" @bind-Value="_model.Password" />
+    </div>
+
+    <div>
+        <label>Contact Number</label><br />
+        <InputText class="form-control" @bind-Value="_model.ContactNumber" />
+    </div>
+
+    <div>
+        <label>Hospital</label><br />
+        <InputSelect class="form-control" @bind-Value="_model.HospitalId">
+            <option value="">-- Select Hospital --</option>
+            @foreach (var hospital in _hospitals)
+            {
+                <option value="@hospital.Id">@hospital.HospitalName</option>
+            }
+        </InputSelect>
+    </div>
+
+    <br />
+
+    <button class="btn btn-primary" type="submit" disabled="@_isSubmitting">
+        Register
+    </button>
+</EditForm>
+
+@if (!string.IsNullOrWhiteSpace(_message))
+{
+    <p>@_message</p>
+}
+
+@code {
+    private RegisterHospitalRepModel _model = new RegisterHospitalRepModel();
+    private bool _isSubmitting;
+    private string? _message;
+    private List<HospitalLookupDto> _hospitals = new List<HospitalLookupDto>();
+
+    protected override async Task OnInitializedAsync()
+    {
+        _hospitals = await HospitalService.GetHospitalsAsync();
+    }
+
+    private async Task RegisterAsync()
+    {
+        _message = null;
+        _isSubmitting = true;
+
+        if (!Guid.TryParse(_model.HospitalId, out var hospitalId))
+        {
+            _message = "Invalid Hospital ID.";
+            _isSubmitting = false;
+            return;
+        }
+
+        try
+        {
+            var dto = new HospitalRepSignupDto
+            {
+                Name = _model.Name,
+                Email = _model.Email,
+                Password = _model.Password,
+                HospitalId = hospitalId, // Guid from TryParse
+                ContactNumber = _model.ContactNumber
+            };
+
+            await RepService.RegisterAsync(dto);
+            _model = new (); // reset form
+            _message = "Registration successful. Await admin approval.";
+        }
+        catch (ApplicationException ex)
+        {
+            _message = ex.Message; // Shows the service-layer exception
+        }
+        catch
+        {
+            _message = "Registration failed. Please try again later.";
+        }
+        finally
+        {
+            _isSubmitting = false;
+        }
+    }
+}

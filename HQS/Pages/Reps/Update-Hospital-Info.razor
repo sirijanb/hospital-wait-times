@@ -1,0 +1,204 @@
+@page "/update-info"
+
+@using HQS.Domain.Entities
+@using HQS.Infrastructure.Services
+@using System.ComponentModel.DataAnnotations;
+@using System.Security.Claims
+
+@inject HospitalService HospitalService
+@inject HospitalRepService HospitalRepService
+@inject AuthenticationStateProvider Auth
+@inject NavigationManager Navigation
+
+@attribute [Authorize(Roles = "HospitalRep")]
+
+<h3>Hospital Information</h3>
+
+@if (_loading)
+{
+    <p>Loading...</p>
+}
+else if (_hospital == null)
+{
+    <p class="text-danger">Hospital not found.</p>
+}
+else
+{
+    <div class="container mt-4">
+
+        <div class="row g-4">
+
+            <!-- LEFT: HOSPITAL INFO -->
+            <div class="col-md-6">
+                <div class="card h-100 shadow-sm">
+                    <div class="card-header fw-bold">
+                        Hospital Information
+                    </div>
+
+                    <div class="card-body">
+
+                        <!-- Image -->
+                        <div class="mb-3 text-center">
+                            @if (!string.IsNullOrWhiteSpace(_hospital.ImagePath))
+                            {
+                                <img src="@_hospital.ImagePath" class="img-fluid rounded" style="max-height:200px;" />
+                            }
+                            else
+                            {
+                                <div class="border rounded p-4 text-muted">
+                                    No image available
+                                </div>
+                            }
+                        </div>
+
+                        <table class="table table-sm table-borderless mb-0">
+                            <tr>
+                                <th>Name</th>
+                                <td>@_hospital.Name</td>
+                            </tr>
+                            <tr>
+                                <th>Address</th>
+                                <td>@_hospital.Address</td>
+                            </tr>
+                            <tr>
+                                <th>Postal Code</th>
+                                <td>@_hospital.PostalCode</td>
+                            </tr>
+                            <tr>
+                                <th>Open Hours</th>
+                                <td>@_hospital.OpenHours</td>
+                            </tr>
+                            <tr>
+                                <th>Total Beds</th>
+                                <td>@_hospital.TotalBeds</td>
+                            </tr>
+                            <tr>
+                                <th>Services</th>
+                                <td>@string.Join(", ", _hospital.ServicesOffered)</td>
+                            </tr>
+                        </table>
+
+                    </div>
+                </div>
+            </div>
+
+            <!-- RIGHT: LIVE STATUS UPDATE -->
+            <div class="col-md-6">
+                <div class="card h-100 shadow-sm">
+                    <div class="card-header fw-bold">
+                        Update Live Status
+                    </div>
+
+                    <div class="card-body">
+                        <EditForm Model="_model" OnValidSubmit="SaveAsync">
+                            <DataAnnotationsValidator />
+                            <ValidationSummary />
+
+                            <div class="mb-3">
+                                <label class="form-label">Available Beds</label>
+                                <InputNumber class="form-control" @bind-Value="_model.AvailableBeds" />
+                                <small class="text-muted">
+                                    Max: @_hospital.TotalBeds
+                                </small>
+                            </div>
+
+                            <div class="mb-3">
+                                <label class="form-label">Queue Length</label>
+                                <InputNumber class="form-control" @bind-Value="_model.QueueLength" />
+                            </div>
+
+                            <div class="mb-3">
+                                <label class="form-label">Wait Time (minutes)</label>
+                                <InputNumber class="form-control" @bind-Value="_model.WaitTimeMinutes" />
+                            </div>
+
+                            <button class="btn btn-success" type="submit" disabled="@_saving">
+                                Save Updates
+                            </button>
+                        </EditForm>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+
+    @if (!string.IsNullOrWhiteSpace(_success))
+    {
+        <p class="text-success mt-2">@_success</p>
+    }
+}
+
+@if (!string.IsNullOrWhiteSpace(_error))
+{
+    <p style="color:red">@_error</p>
+}
+
+@code {
+    private Hospital? _hospital;
+    private UpdateHospitalStatusModel _model = new();
+    private bool _loading = true;
+    private bool _saving;
+    private string? _success;
+    private string? _error;
+    protected override async Task OnInitializedAsync()
+    {
+        var state = await Auth.GetAuthenticationStateAsync();
+        var userId = state.User.FindFirstValue(ClaimTypes.NameIdentifier);
+
+        if (userId == null)
+        {
+            Navigation.NavigateTo("/login");
+            return;
+        }
+
+        var hospitalId = await HospitalRepService.GetHospitalIdForUserAsync(userId);
+        if (hospitalId == null)
+            return;
+
+        _hospital = await HospitalService.GetByIdAsync(hospitalId.Value);
+
+        if (_hospital != null)
+        {
+            _model.AvailableBeds = _hospital.AvailableBeds;
+            _model.QueueLength = _hospital.QueueLength;
+            _model.WaitTimeMinutes = _hospital.WaitTimeMinutes;
+        }
+
+        _loading = false;
+    }
+
+    private async Task SaveAsync()
+    {
+        _saving = true;
+        _success = null;
+        try
+        {
+            await HospitalService.UpdateOperationalInfoAsync(
+            _hospital!.HospitalId,
+            _model.AvailableBeds,
+            _model.QueueLength,
+            _model.WaitTimeMinutes);
+            _model = new();//reset form
+            _success = "Updated successfully.";
+            _saving = false;
+        }
+        catch (Exception ex)
+        {
+            _error = ex.Message;
+        }
+    }
+
+    private class UpdateHospitalStatusModel
+    {
+        [Range(0, 10000)]
+        public int AvailableBeds { get; set; }
+
+        [Range(0, 10000)]
+        public int QueueLength { get; set; }
+
+        [Range(0, 1440)]
+        public int WaitTimeMinutes { get; set; }
+    }
+}
