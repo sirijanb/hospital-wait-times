@@ -1,0 +1,13 @@
+@page "/logout"
+@inject SignInManager<HQS.Infrastructure.Identity.ApplicationUser> SignInManager
+@inject NavigationManager Navigation
+@inject HQS.Infrastructure.Services.AuthStateProvider AuthStateProvider
+
+<h3>Logging out...</h3>
+
+@code {
+    protected override void OnInitialized()
+    {
+        Navigation.NavigateTo("/api/auth/logout", forceLoad: true);
+    }
+}
