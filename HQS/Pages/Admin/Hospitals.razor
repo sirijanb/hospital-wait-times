@@ -1,5 +1,6 @@
 @page "/admin/hospitals"
 @using HQS.Domain.Entities
+@using HQS.Domain.Enums
 @using HQS.Infrastructure.Data
 @using HQS.Infrastructure.Services
 @using HQS.Shared
@@ -17,80 +18,140 @@
     <img src="@_imagePreview" style="max-width:200px;" />
 }
 
-<!-- Add Hospital Form -->
 <EditForm Model="_newHospital" OnValidSubmit="AddHospitalAsync">
     <DataAnnotationsValidator />
     <ValidationSummary />
 
-    <div class="mb-2">
-        <label>Name</label>
+    <div class="mb-3">
+        <label class="form-label">Hospital Name</label>
         <InputText class="form-control" @bind-Value="_newHospital.Name" />
     </div>
-    <div class="mb-2">
-        <label>Address</label>
+
+    <div class="mb-3">
+        <label class="form-label">Address</label>
         <InputText class="form-control" @bind-Value="_newHospital.Address" />
     </div>
-    <div class="mb-2">
-        <label>Postal Code</label>
+
+    <div class="mb-3">
+        <label class="form-label">Postal Code</label>
         <InputText class="form-control" @bind-Value="_newHospital.PostalCode" />
     </div>
-    <div class="mb-2">
-        <label>Total Beds</label>
-        <InputNumber class="form-control" @bind-Value="_newHospital.TotalBeds" />
-    </div>
-    <div class="mb-2">
-        <label>Open Hours</label>
+
+    <div class="mb-3">
+        <label class="form-label">Open Hours</label>
         <InputText class="form-control" @bind-Value="_newHospital.OpenHours" />
     </div>
 
-    <button class="btn btn-success" type="submit">Add Hospital</button>
+    <div class="mb-3">
+        <label class="form-label">Total Beds</label>
+        <InputNumber class="form-control" @bind-Value="_newHospital.TotalBeds" />
+    </div>
+
+    <!-- SERVICES -->
+    <div class="mb-3">
+        <label class="form-label">Services Offered</label>
+
+        <div class="services-checkboxes">
+            @foreach (var service in Enum.GetValues<ServiceType>())
+            {
+                <div class="form-check">
+                    <input type="checkbox" class="form-check-input"
+                        checked="@_newHospital.ServicesOffered.Contains(service)"
+                        @onchange="e => OnServiceToggle(service, e.Value)" />
+
+                    <label class="form-check-label">
+                        @service
+                    </label>
+                </div>
+            }
+        </div>
+    </div>
+
+    <button class="btn btn-success" type="submit">
+        Add Hospital
+    </button>
 </EditForm>
 
 <hr />
 
 <!-- Hospital List -->
-<table class="table table-striped mt-3">
-    <thead>
-        <tr>
-            <th>Name</th>
-            <th>Address</th>
-            <th>Postal Code</th>
-            <th>Total Beds</th>
-            <th>Available Beds</th>
-            <th>Queue Length</th>
-            <th>Wait Time (min)</th>
-            <th>Actions</th>
-        </tr>
-    </thead>
-    <tbody>
-        @if (_Hospitals != null)
+<div class="row mt-3">
+    @if (_Hospitals != null)
+    {
+        foreach (var hospital in _Hospitals)
         {
-            foreach (var hospital in _Hospitals)
-            {
-                <tr>
-                    <td>@hospital.Name</td>
-                    <td>@hospital.Address</td>
-                    <td>@hospital.PostalCode</td>
-                    <td>@hospital.TotalBeds</td>
-                    <td>@hospital.AvailableBeds</td>
-                    <td>@hospital.QueueLength</td>
-                    <td>@hospital.WaitTimeMinutes</td>
-                    <td>
-                        <button class="btn btn-sm btn-outline-primary" @onclick="() => EditHospital(hospital.HospitalId)">
-                            Edit
-                        </button>
-                        <button class="btn btn-danger btn-sm" @onclick="() => DeleteHospitalAsync(hospital.HospitalId)">Delete
-                        </button>
-                    </td>
-                </tr>
-            }
+            <div class="col-md-6 col-lg-4 mb-4">
+                <div class="card h-100 shadow-sm edit-hospital-card">
+
+                    <!-- Thumbnail -->
+                    <img src="@hospital.ImagePath" class="card-img-top edit-hospital-thumb" alt="@hospital.Name"
+                        onerror="this.src='/images/hospital-placeholder.png'" />
+
+                    <div class="card-body d-flex flex-column">
+
+                        <!-- Name + Open Hours -->
+                        <div class="d-flex justify-content-between align-items-start">
+                            <h5 class="card-title mb-1">@hospital.Name</h5>
+
+                            <span class="badge @GetOpenHoursBadgeClass(hospital.OpenHours)">
+                                @hospital.OpenHours
+                            </span>
+                        </div>
+
+                        <!-- Address -->
+                        <p class="text-muted small mb-2">
+                            @hospital.Address, @hospital.PostalCode
+                        </p>
+
+                        <!-- Bed Stats -->
+                        <div class="d-flex justify-content-between mb-2">
+                            <span>Total Beds: <strong>@hospital.TotalBeds</strong></span>
+                            <span class="badge @GetBedAvailabilityClass(hospital)">
+                                Available: @hospital.AvailableBeds
+                            </span>
+                        </div>
+
+                        <!-- Queue Info -->
+                        <div class="small text-muted mb-3">
+                            Queue: <strong>@hospital.QueueLength</strong> |
+                            Wait: <strong>@hospital.WaitTimeMinutes min</strong>
+                        </div>
+
+                        <!-- Services -->
+                        <div class="mb-3">
+                            @foreach (var service in hospital.ServicesOffered)
+                            {
+                                <span class="badge me-1 mb-1 @GetServiceBadgeClass(service.ToString())">
+                                    @service
+                                </span>
+                            }
+                        </div>
+
+                        <!-- Actions -->
+                        <div class="mt-auto d-flex justify-content-between">
+                            <button class="btn btn-sm btn-outline-primary" @onclick="() => EditHospital(hospital.HospitalId)">
+                                Edit
+                            </button>
+
+                            <button class="btn btn-sm btn-danger" @onclick="() => DeleteHospitalAsync(hospital.HospitalId)">
+                                Delete
+                            </button>
+                        </div>
+
+                    </div>
+                </div>
+            </div>
         }
-    </tbody>
-</table>
+    }
+</div>
+
 
 @code {
     private List<Hospital> _Hospitals = new();
-    private Hospital _newHospital = new();
+    private Hospital _newHospital = new()
+    {
+        ServicesOffered = new List<ServiceType>()
+    };
 
     protected override async Task OnInitializedAsync()
     {
@@ -133,4 +194,50 @@
     {
         Navigation.NavigateTo($"/admin/hospitals/edit/{id}");
     }
+
+    private void OnServiceToggle(ServiceType service, object? value)
+    {
+        var isChecked = value is bool b && b;
+
+        if (isChecked)
+        {
+            if (!_newHospital.ServicesOffered.Contains(service))
+                _newHospital.ServicesOffered.Add(service);
+        }
+        else
+        {
+            _newHospital.ServicesOffered.Remove(service);
+        }
+    }
+
+    string GetBedAvailabilityClass(Hospital h)
+    {
+        if (h.AvailableBeds == 0) return "bg-danger";
+        if (h.AvailableBeds < 5) return "bg-warning text-dark";
+        return "bg-success";
+    }
+
+    string GetOpenHoursBadgeClass(string openHours)
+    {
+        if (string.IsNullOrWhiteSpace(openHours))
+            return "bg-secondary";
+
+        if (openHours.Contains("24", StringComparison.OrdinalIgnoreCase))
+            return "bg-success";
+
+        return "bg-info";
+    }
+
+    string GetServiceBadgeClass(string service)
+    {
+        return service switch
+        {
+            "Emergency" => "bg-danger",
+            "ICU" => "bg-warning text-dark",
+            "Pediatrics" => "bg-info",
+            "Cardiology" => "bg-primary",
+            _ => "bg-secondary"
+        };
+    }
+
 }

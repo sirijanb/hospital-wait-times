@@ -77,11 +77,7 @@ namespace HQS.Infrastructure.Services
         }
 
         //For hospital-rep only
-        public async Task UpdateOperationalInfoAsync(
-            Guid hospitalId,
-            int availableBeds,
-            int queueLength,
-            int waitTimeMinutes)
+        public async Task UpdateOperationalInfoAsync(Guid hospitalId, int availableBeds, int queueLength, int waitTimeMinutes)
         {
             var hospital = await _db.Hospitals.FindAsync(hospitalId);
             if (hospital == null)
@@ -140,6 +136,8 @@ namespace HQS.Infrastructure.Services
 
                 existing.ImagePath = $"/hospital-images/{fileName}";
             }
+
+            existing.ServicesOffered = hospital.ServicesOffered.ToList();
 
             await _db.SaveChangesAsync();
         }
