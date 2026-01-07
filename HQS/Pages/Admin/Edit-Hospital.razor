@@ -1,5 +1,6 @@
 @page "/admin/hospitals/edit/{HospitalId:guid}"
 @using HQS.Domain.Entities
+@using HQS.Domain.Enums
 @using HQS.Infrastructure.Services
 @inject HospitalService HospitalService
 @inject NavigationManager Nav
@@ -13,32 +14,6 @@
 }
 else
 {
-    @* <EditForm Model="_hospital" OnValidSubmit="UpdateHospital">
-        <DataAnnotationsValidator />
-
-        <InputText @bind-Value="_hospital.Name" class="form-control" />
-        <InputText @bind-Value="_hospital.Address" class="form-control" />
-        <InputText @bind-Value="_hospital.PostalCode" class="form-control" />
-
-        <InputNumber @bind-Value="_hospital.TotalBeds" class="form-control" />
-        <InputNumber @bind-Value="_hospital.AvailableBeds" class="form-control" />
-
-        <label>Current Image</label>
-        <img src="@_hospital.ImagePath" style="max-width:200px; border-radius:6px;" />
-
-        <label>Replace Image (optional)</label>
-        <InputFile OnChange="OnImageSelected" />
-
-        @if (!string.IsNullOrEmpty(_imagePreview))
-        {
-            <img src="@_imagePreview" style="max-width:200px;" />
-        }
-
-        <button class="btn btn-success mt-3">Update</button>
-        <button type="button" class="btn btn-secondary mt-3" @onclick="Cancel">
-            Cancel
-        </button>
-    </EditForm> *@
     <EditForm Model="_hospital" OnValidSubmit="UpdateHospital">
         <DataAnnotationsValidator />
 
@@ -63,17 +38,37 @@ else
                             <InputText class="form-control" @bind-Value="_hospital.PostalCode" />
                         </div>
 
+                        <div class="mb-3">
+                            <label class="form-label">Open Hours</label>
+                            <InputText class="form-control" @bind-Value="_hospital.OpenHours" />
+                        </div>
+
                         <div class="row">
                             <div class="col">
                                 <label class="form-label">Total Beds</label>
                                 <InputNumber class="form-control" @bind-Value="_hospital.TotalBeds" />
                             </div>
+                        </div>
 
-                            <div class="col">
-                                <label class="form-label">Available Beds</label>
-                                <InputNumber class="form-control" @bind-Value="_hospital.AvailableBeds" />
+                        <div class="mb-3">
+                            <label class="form-label fw-bold">Services Offered</label>
+
+                            <div class="d-flex flex-wrap gap-3">
+                                @foreach (var service in Enum.GetValues<ServiceType>())
+                                {
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="checkbox"
+                                            checked="@_hospital.ServicesOffered.Contains(service)"
+                                            @onchange="e => OnServiceToggle(service, (bool)e.Value!)" />
+
+                                        <label class="form-check-label">
+                                            @service
+                                        </label>
+                                    </div>
+                                }
                             </div>
                         </div>
+
                     </div>
                 </div>
             </div>
@@ -81,7 +76,6 @@ else
             <div class="col-md-4">
                 <div class="card">
                     <div class="card-header fw-bold">Hospital Image</div>
-
                     <div class="card-body text-center">
                         @if (!string.IsNullOrWhiteSpace(_hospital.ImagePath))
                         {
@@ -117,13 +111,20 @@ else
 @code {
     [Parameter] public Guid HospitalId { get; set; }
 
-    private Hospital? _hospital;
+    private Hospital? _hospital = new() {
+        ServicesOffered = new List<ServiceType>()
+    };
     private IBrowserFile? _newImage;
     private string? _imagePreview;
 
     protected override async Task OnInitializedAsync()
     {
         _hospital = await HospitalService.GetByIdAsync(HospitalId);
+
+        if (_hospital != null)
+        {
+            _hospital.ServicesOffered ??= new List<ServiceType>();
+        }
     }
 
     private async Task OnImageSelected(InputFileChangeEventArgs e)
@@ -148,4 +149,22 @@ else
     {
         Nav.NavigateTo("/admin/hospitals");
     }
+
+    void OnServiceToggle(ServiceType service, bool isChecked)
+    {
+        if (_hospital != null)
+        {
+            if (isChecked)
+            {
+                if (!_hospital.ServicesOffered.Contains(service))
+                    _hospital.ServicesOffered.Add(service);
+            }
+            else
+            {
+                _hospital.ServicesOffered.Remove(service);
+            }
+        }
+    }
+
+
 }
