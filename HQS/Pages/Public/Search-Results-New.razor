@@ -1,0 +1,497 @@
+@layout PublicPageLayout
+@page "/search-results-map"
+@using HQS.Domain.Entities;
+@using HQS.Domain.Enums
+@using HQS.Infrastructure.DTOs
+@using HQS.Infrastructure.Data
+@using HQS.Infrastructure.Services
+@using Microsoft.AspNetCore.Components
+@using System.Runtime.InteropServices
+@inject IJSRuntime JS
+@inject IHospitalLocateService HospitalLocateService
+@inject AddressState AddressState
+@inject NavigationManager Navigation
+@inject HospitalService hs
+
+<div class="d-flex gap-1 align-items-start">
+    <div class="address-box position-relative flex-grow-1 ms-2 me-3">
+        <input class="form-control" placeholder="Enter your address" value="@AddressState.Address"
+            @oninput="OnAddressInput" />
+
+        @if (!string.IsNullOrWhiteSpace(AddressState.Address))
+        {
+            <button type="button" class="btn-clear" title="Clear" @onclick="ClearAddress">
+                ✕
+            </button>
+        }
+
+        @if (_suggestions.Any())
+        {
+            <ul class="suggestions-list">
+                @foreach (var s in _suggestions)
+                {
+                    <li @onclick="() => SelectNewAddress(s)">
+                        @s.DisplayName
+                    </li>
+                }
+            </ul>
+        }
+    </div>
+
+    <button class="btn-location me-2" title="Detect My Location" @onclick="DetectLocation">
+    </button>
+</div>
+
+@if (!string.IsNullOrEmpty(_error))
+{
+    <p class="text-danger mt-2">@_error</p>
+}
+
+<div class="results-container">
+    <!-- LEFT: LIST -->
+    <div>
+        <!-- FILTER BAR -->
+        @* <div class="results-filter-bar"> *@
+
+        <!-- Radius -->
+        @* <div class="filter-item">
+                <label class="filter-label">
+                    Radius: <strong>@_radiusInKm km</strong>
+                </label>
+                <input type="range" min="1" max="100" step="1" class="form-range" @bind="_radiusInKm" />
+            </div> *@
+
+        <!-- Service Type -->
+        @* <div class="filter-item">
+                <label class="filter-label">Service</label>
+                <select class="form-select" @bind="_selectedService">
+                    <option value="">All Services</option>
+                    @foreach (var s in _allServices)
+                    {
+                        <option value="@s">@s</option>
+                    }
+                </select>
+            </div> *@
+
+        <!-- Open 24x7 -->
+        @* <div class="filter-item align-end">
+                <button class="@GetOpen24x7Class()" @onclick="() => ToggleOpen24x7(toggleOpen247)">
+                    24 × 7
+                </button>
+            </div> *@
+
+        @* </div> *@
+        <div class="results-2-hospital-scroll-container">
+            @if (_hospitals == null || _hospitals.Count == 0)
+            {
+                <p>Loading hospitals...</p>
+            }
+            else
+            {
+                @foreach (var h in _visibleHospitals)
+                {
+                    bool isExpanded = _expandedHospitalId == h.HospitalId;
+                    bool isSelected = _selectedHospitalId == h.HospitalId;
+                    <div class="@GetHospitalCardClass(h)" @onclick="() => SelectHospital(h)">
+
+                        @* <img src="@GetHospitalImage(h)" class="thumb" alt="Hospital image" /> *@
+
+                        @* <div class=""> *@
+                        <div class="results-2-card-header">
+                            <h5 class="results-hospital-title">@h.Name</h5>
+                            @if (h.DistanceKm > 0)
+                            {
+                                <strong>📍@Math.Round(h.DistanceKm)km from you</strong>
+                            }
+                        </div>
+
+                        <div>
+                            <div>⏳ Waiting Time: <strong>@FormatWaitTime(h.WaitTimeMinutes)</strong></div>
+                            <div>👥 Patients in Queue: <strong>@h.QueueLength</strong></div>
+                            <div>🛏 Beds Available: <strong>@h.AvailableBeds/@h.TotalBeds</strong></div>
+
+                            @* • 👤 All Ages *@
+                        </div>
+                        @*badge open-hours *@
+                        <span class="badge @GetOpenHoursBadgeClass(h.OpenHours)">
+                            @h.OpenHours
+                        </span>
+
+                        <div class="services">
+                            @foreach (var s in h.ServicesOffered)
+                            {
+                                <span class="service-badge @GetServiceClass(s)">
+                                    @s
+                                </span>
+                            }
+                        </div>
+
+                        <div class="results-2-card-actions">
+                            <button class="results-2-btn-light" @onclick="() => OpenDirections(h)"
+                                @onclick:stopPropagation="true">DIRECTIONS</button>
+                            @if (!string.IsNullOrWhiteSpace(h.Website))
+                            {
+                                <button class="results-2-btn-light" @onclick="() => OpenWebsite(h)"
+                                    @onclick:stopPropagation="true">WEBSITE</button>
+                            }
+                            <button class="results-2-btn-primary" @onclick:stopPropagation="true"
+                                @onclick="() => ToggleExpand(h.HospitalId)">
+                                @(isExpanded ? "HIDE INFO" : "MORE INFO")
+                            </button>
+                        </div>
+
+                        @if (isExpanded)
+                        {
+                            <!-- Expanded Info -->
+                            <div class="results-2-card-extra @(isExpanded ? "expanded" : "")">
+                                @if (!string.IsNullOrWhiteSpace(h.Phone))
+                                {
+                                    <div>📞 @h.Phone </div>
+                                }
+                                else
+                                {
+                                    <div>📞 Not available </div>
+                                }
+
+                                @if (!string.IsNullOrWhiteSpace(h.PostalCode))
+                                {
+                                    <div>🏥 @h.Address, @h.PostalCode</div>
+                                }
+                                else
+                                {
+                                    <div>🏥 @h.Address </div>
+                                }
+                                @* <div class="results-2-updated">
+                                    Last Updated @h.LastUpdated.ToString("g")
+                                </div> *@
+                            </div>
+                        }
+
+
+                        @* </div> *@
+                    </div>
+                }
+                @if (_hospitals == null || _hospitals.Count == 0)
+                {
+                    <p>No nearby hospitals data available at the moment. Please Try again.</p>
+                }
+            }
+            @if (CanLoadMore)
+            {
+                <div class="text-center mt-3">
+                    <button class="btn btn-outline-primary" @onclick="LoadNextBatch">
+                        Show More
+                    </button>
+                </div>
+            }
+        </div>
+
+
+    </div>
+    <!-- RIGHT: MAP -->
+    <div id="map" class="results-map"></div>
+</div>
+
+@code {
+    private List<Hospital>? _hospitals = new List<Hospital>();
+    private List<Hospital> _visibleHospitals = new();
+
+    private const int PageSize = 5;
+    private int _currentIndex = 0;
+
+    private bool CanLoadMore => _currentIndex < _hospitals?.Count;
+    private Guid? _selectedHospitalId;
+    private Guid? _expandedHospitalId;
+
+    [Parameter, SupplyParameterFromQuery]
+    public double Lat { get; set; } //when coming from landing-page (/location)
+
+    [Parameter, SupplyParameterFromQuery]
+    public double Lon { get; set; } //when coming from landing-page (/location)
+
+    private List<AddressSuggestion> _suggestions = new();
+    private string? _error;
+    private bool toggleOpen247;
+    @* private int _radiusInKm = 25; *@
+    @* private string? _selectedService; *@
+    private readonly List<string> _allServices = new() { "Emergency", "UPCC", "Pediatrics", "Trauma", "Cardiology",
+"General" };
+
+    protected override async Task OnInitializedAsync()
+    {
+        _hospitals = await hs.GetAllHospitalsAsync();//await HospitalLocateService.GetNearbyHospitalsAsync(Lat, Lon, _radiusInKm
+                                                     @* *1000, "Canada"); *@
+        if (_hospitals is not null && _hospitals.Count > 0)
+        {
+            foreach (var h in _hospitals)
+            {
+                h.DistanceKm = GeoUtils.DistanceKm(
+                AddressState.Lat,
+                AddressState.Lon,
+                h.Latitude ?? 0.0,
+                h.Longitude ?? 0.0
+                );
+            }
+
+            // nearest first
+            _hospitals = _hospitals
+            .OrderBy(h => h.DistanceKm)
+            .ToList();
+
+            _visibleHospitals.Clear();
+            _currentIndex = 0;
+
+            await LoadNextBatch();
+        }
+        else
+        {
+            _error = "Unable to fetch data. Please try again.";
+        }
+
+        @* PopulatePins(); *@
+    }
+
+    void PopulatePins()
+    {
+        if (_hospitals is not null)
+        {
+            JS.InvokeVoidAsync(
+            "mapInterop.addHospitals",
+            _hospitals
+            );
+        }
+    }
+
+    async Task LoadNextBatch()
+    {
+        if (_hospitals is not null && _hospitals.Count > 0)
+        {
+            var next = _hospitals
+            .Skip(_currentIndex)
+            .Take(PageSize)
+            .ToList();
+
+            _visibleHospitals.AddRange(next);
+            _currentIndex += next.Count;
+            Console.WriteLine($">> _visibleHospitals: {_visibleHospitals.Count}");
+            // Update map with only visible hospitals
+            await JS.InvokeVoidAsync("mapInterop.addHospitals", _visibleHospitals);
+        }
+        else
+        {
+            _error = "Unable to fetch data. Please try again.";
+        }
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (!firstRender)
+            return;
+        await JS.InvokeVoidAsync("mapInterop.initMap", Lat, Lon);
+        @* if (_hospitals is not null)
+        {
+            await JS.InvokeVoidAsync(
+            "mapInterop.addHospitals",
+            _hospitals
+            );
+        } *@
+    }
+
+    private async Task SelectHospital(Hospital hospital)
+    {
+        _selectedHospitalId = hospital.HospitalId;
+
+        await JS.InvokeVoidAsync(
+        "mapInterop.focusHospital",
+        hospital.Latitude,
+        hospital.Longitude
+        );
+    }
+
+    private string GetHospitalCardClass(Hospital h)
+    {
+        return _selectedHospitalId == h.HospitalId
+        ? "results-2-hospital-card-advanced selected"
+        : "results-2-hospital-card-advanced";
+    }
+
+    private string GetHospitalImage(Hospital h)
+    {
+        return !string.IsNullOrWhiteSpace(h.ImagePath)
+        ? h.ImagePath
+        : "/hospital-images/hospital-placeholder.png";
+    }
+
+    private string GetServiceClass(ServiceType service) => service switch
+    {
+        ServiceType.Emergency => "service-emergency",
+        ServiceType.UPCC => "service-upcc",
+        ServiceType.Pediatrics => "service-pediatrics",
+        ServiceType.Trauma => "service-trauma",
+        _ => "service-default"
+    };
+
+    void ToggleExpand(Guid hospitalId)
+    {
+        _expandedHospitalId =
+        (_expandedHospitalId == hospitalId)
+        ? null // Use 'null' to clear the Guid?, not string.Empty
+        : hospitalId;
+        @* _expandedHospitalId =
+        (_expandedHospitalId == hospitalId) ? string.Empty : hospitalId; *@
+    }
+
+    private async Task OnAddressInput(ChangeEventArgs e)
+    {
+        if (string.IsNullOrWhiteSpace(e.Value?.ToString()))
+        {
+            _suggestions.Clear();
+            return;
+        }
+        AddressState.Address = e.Value?.ToString() ?? string.Empty;
+
+        _suggestions = await JS.InvokeAsync<List<AddressSuggestion>>(
+        "locationInterop.searchAddress",
+        AddressState.Address
+        );
+    }
+
+    private async Task DetectLocation()
+    {
+        try
+        {
+            var coords = await JS.InvokeAsync<GeoPosition>("locationInterop.getCurrentLocation");
+
+            AddressState.Address = string.Empty;
+            AddressState.Lat = coords.Lat;
+            AddressState.Lon = coords.Lng;
+
+            _suggestions.Clear();
+            _hospitals?.Clear();
+
+            _selectedHospitalId = _expandedHospitalId = null;//string.Empty;
+            StateHasChanged();
+            
+            await LoadNewHospitalsAsync();
+        }
+        catch (Exception ex)
+        {
+            _error = $"Unable to detect location. Please enter address manually. {ex.Message}";
+        }
+    }
+
+    private void ClearAddress()
+    {
+        AddressState.Address = string.Empty;
+        _suggestions.Clear();
+    }
+
+    private async Task SelectNewAddress(AddressSuggestion address)
+    {
+        AddressState.Address = address.DisplayName;
+        AddressState.Lat = address.Lat;
+        AddressState.Lon = address.Lon;
+        _suggestions.Clear();
+        _hospitals?.Clear();
+
+        _selectedHospitalId = _expandedHospitalId = null;//string.Empty;
+        StateHasChanged();
+        await LoadNewHospitalsAsync();
+    }
+
+    private async Task LoadNewHospitalsAsync()
+    {
+        _error = "Searching...";
+        _hospitals?.Clear();
+        _suggestions.Clear();
+        _hospitals = await hs.GetAllHospitalsAsync();//await HospitalLocateService.GetNearbyHospitalsAsync(AddressState.Lat,
+                                                     @* AddressState.Lon, _radiusInKm * 1000, *@
+                                                     @* "Canada"); *@
+
+        if (_hospitals is not null && _hospitals.Count > 0)
+        {
+            _error = string.Empty;
+            foreach (var h in _hospitals)
+            {
+                h.DistanceKm = GeoUtils.DistanceKm(
+                AddressState.Lat,
+                AddressState.Lon,
+                h.Latitude ?? 0.0,
+                h.Longitude ?? 0.0
+                );
+            }
+
+            // nearest first
+            _hospitals = _hospitals
+            .OrderBy(h => h.DistanceKm)
+            .ToList();
+
+            _visibleHospitals.Clear();
+            _currentIndex = 0;
+
+            //Refresh map
+            await JS.InvokeVoidAsync(
+            "mapInterop.setUserLocation",
+            AddressState.Lat,
+            AddressState.Lon
+            );
+
+            await LoadNextBatch();
+        }
+        else
+        {
+            _error = "Unable to fetch data. Please try again.";
+        }
+
+        @* PopulatePins(); *@
+    }
+
+    private string GetOpen24x7Class()
+    {
+        return (toggleOpen247 ? "btn btn-outline-primary active-filter" : "btn btn-outline-primary");
+    }
+
+    private void ToggleOpen24x7(bool show)
+    {
+        toggleOpen247 = !show;
+    }
+
+    async Task OpenDirections(Hospital h)
+    {
+        if (h.Latitude == null || h.Longitude == null)
+            return;
+
+        var url = $"https://www.google.com/maps/dir/?api=1&destination={h.Latitude},{h.Longitude}";
+        @* Navigation.NavigateTo(url, true); // true = open new tab *@
+        await JS.InvokeVoidAsync("window.open", url, "_blank");
+    }
+    async Task OpenWebsite(Hospital h)
+    {
+        if (string.IsNullOrWhiteSpace(h.Website))
+            return;
+
+        var url = h.Website.StartsWith("http")
+        ? h.Website
+        : $"https://{h.Website}";
+
+        @* Navigation.NavigateTo(url, true); *@
+        await JS.InvokeVoidAsync("window.open", url, "_blank");
+    }
+
+    string FormatWaitTime(int minutes)
+    {
+        int h = minutes / 60;
+        int m = minutes % 60;
+        return h > 0 ? $"{h}h {m} min" : $"{m} min";
+    }
+    string GetOpenHoursBadgeClass(string? openHours)
+    {
+        if (string.IsNullOrWhiteSpace(openHours))
+            return "bg-secondary";
+
+        if (openHours.Contains("24", StringComparison.OrdinalIgnoreCase))
+            return "bg-success";
+
+        return "bg-info";
+    }
+}

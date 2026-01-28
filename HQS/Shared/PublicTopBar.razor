@@ -1,0 +1,45 @@
+@inject NavigationManager Navigation
+<div class="topbar">
+    <div class="topbar-left">
+        <NavLink href="">
+            <img src="logo.svg" class="topbar-logo" href="/" />
+        </NavLink>
+    </div>
+
+    @* <div class="topbar-right">
+        <button class="topbar-btn" @onclick="OnHome">Home</button>
+        <button class="topbar-btn" @onclick="OnSearch">Search</button>
+        <button class="topbar-btn" @onclick="OnBackPanel">Admin</button>
+    </div> *@
+    <div class="topbar-right">
+        <NavLink class="topbar-btn" href="" Match="NavLinkMatch.All" @onclick="HandleHomeClick">Home</NavLink>
+        @* <NavLink class="topbar-btn" href="search">Search</NavLink> *@
+        <NavLink class="topbar-btn" href="about">About</NavLink>
+        <NavLink class="topbar-btn" href="empanelled-hospitals">Hospitals</NavLink>
+        @* <NavLink class="topbar-btn" href="admin">Admin</NavLink> *@
+    </div>
+</div>
+
+@code {
+    [Parameter] public EventCallback OnHome { get; set; }
+    [Parameter] public EventCallback OnSearch { get; set; }
+    [Parameter] public EventCallback OnBackPanel { get; set; }
+
+    [Parameter] public string? AddressInput { get; set; } // The text from your text box
+
+    private void HandleHomeClick()
+    {
+        if (string.IsNullOrWhiteSpace(AddressInput))
+        {
+            // If text box is empty, navigate to the Index/Home page
+            Navigation.NavigateTo("/");
+        }
+        else
+        {
+            // Logic if text is present (e.g., clear it or stay put)
+            AddressInput = string.Empty;
+            Navigation.NavigateTo("/");
+        }
+    }
+
+}

@@ -1,0 +1,91 @@
+.about-section-main-container {
+    display: flex;
+    flex-direction: column;
+    /* justify-content: center; */
+    /* align-items: center; */
+    min-height: 100vh;
+    max-width: 100%;
+    width: 100%;
+    /* text-align: center; */
+    box-sizing: border-box;
+    padding-left: 10%;
+    padding-right: 10%;
+}
+
+.about-section-container {
+    max-width: 100%;
+    /* 800px; */
+    /* Optional: Constrain width for better look on large screens */
+    /* margin: 20px auto; */
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    overflow: hidden;
+    /* Keeps borders clean at corners */
+    background: white;
+    margin-bottom: 15px;
+}
+
+.about-section-container h1 {
+    /* padding: 15px 20px 0; */
+    font-size: 1.2rem;
+    color: #333;
+    padding-left: 10px;
+    padding-right: 10px;
+}
+
+.about-section-container p {
+    /* padding: 0 20px 15px; */
+    color: #666;
+    padding-left: 10px;
+    padding-right: 10px;
+}
+
+.accordion-item {
+    border-top: 1px solid #eee;
+    /* Use top border for a stacked look */
+}
+
+.accordion-header {
+    background: transparent;
+    border: none;
+    width: 100%;
+    padding: 15px 20px;
+    /* Consistent padding */
+    text-align: left;
+    cursor: pointer;
+    font-size: 0.9rem;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    color: #222;
+    /* Darker text for better contrast */
+    transition: background-color 0.2s;
+    /* Smooth hover transition */
+}
+
+.accordion-header:hover {
+    background: #f9f9f9;
+}
+
+.icon {
+    font-weight: bold;
+    font-size: 1.2rem;
+    width: 20px;
+    text-align: center;
+    transition: transform 0.3s;
+    /* Smooth icon rotation/change */
+}
+
+.accordion-content {
+    /* Set by Blazor C# logic via 'style' attribute binding */
+    overflow: hidden;
+    /* Tweak timing/ease for smoother effect */
+    transition: max-height 0.4s ease-in-out, padding 0.4s ease-in-out;
+    background: #fcfcfc;
+    border-top: 1px solid #eee;
+}
+
+/* Optional: Rotate the plus icon to an X when active */
+.accordion-item.active .icon {
+    transform: rotate(45deg);
+}

@@ -1,0 +1,33 @@
+@inherits LayoutComponentBase
+@inject NavigationManager Navigation
+
+<PublicTopBar OnHome="GoHome" OnSearch="GoSearch" OnBackPanel="GoBackPanel" />
+
+@* <div class="page-layout">
+    @Body
+</div> *@
+
+<main class="page-content">
+    @Body
+</main>
+
+<PublicFooter />
+@code {
+    Task GoHome()
+    {
+        @* Navigation.NavigateTo("/"); *@
+        return Task.CompletedTask;
+    }
+
+    Task GoSearch()
+    {
+        @* Navigation.NavigateTo("/");//search-location *@
+        return Task.CompletedTask;
+    }
+
+    Task GoBackPanel()
+    {
+        @* Navigation.NavigateTo("/admin"); *@
+        return Task.CompletedTask;
+    }
+}

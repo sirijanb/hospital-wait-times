@@ -1,0 +1,36 @@
+.resources-main-container {
+    display: flex;
+    flex-direction: column;
+    /* justify-content: center; */
+    /* align-items: center; */
+    min-height: 100vh;
+    max-width: 100%;
+    width: 100%;
+    /* text-align: center; */
+    box-sizing: border-box;
+    padding-left: 10%;
+    padding-right: 10%;
+}
+
+.resources-scroll-container {
+    height: calc(100vh - 150px);
+    overflow-y: auto;
+    padding-right: 20px;
+    /* margin-right: 10px; */
+    /* margin-top: 10px; */
+}
+
+.resources-card-actions {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+    /* margin-top: 5px; */
+}
+
+.resources-btn-light {
+    background: #eef1ff;
+    border-radius: 5px;
+    padding: 12px;
+    font-weight: 400;
+    border: none;
+}

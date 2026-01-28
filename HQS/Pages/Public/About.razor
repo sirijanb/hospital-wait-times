@@ -1,0 +1,76 @@
+@layout PublicPageLayout
+@page "/about"
+
+<div class="about-section-main-container">
+    <h3>About - The journey behind this platform</h3>
+    <p class="lead">
+        Emergency departments are often overcrowded, leaving patients unaware
+        of long wait times or bed availability. Reports indicate that around 23,746 to 24,000 deaths
+        reported while waiting for care in the period of April 2024 - March 2025,
+        highlighting the urgent need for better patient flow management.
+        This platform enables hospitals to publish real-time operational data
+        such as wait times, queue length, and available beds — helping patients
+        choose the right facility faster and reducing overall congestion.
+    </p>
+    <h3>Using this platform</h3>
+    <p class="lead">In the case of a serious emergency always call emergency services or go to your
+        nearest emergency department.
+    </p>
+
+    <div>
+         @* class="about-section-container"> *@
+        @foreach (var item in Items)
+        {
+            <p class="lead"><strong>Q: @item.Title</strong><br />@item.Content</p>
+        }
+    </div>
+
+    <h3>Disclaimer and Terms of Use</h3>
+    <p class="lead">The emergency department wait times displayed on this website are being provided
+        for general information only. Please be advised that the wait times can change significantly
+        and immediately, without warning and therefore are not guaranteed. Patients will be seen in the
+        emergency department based on their medical condition and the severity of their situation.
+        Due to changing demands in emergency departments, these wait times may not be the time you
+        will need to wait once you arrive at the emergency department. The provision of the wait times
+        on this website are not medical advice or a recommendation of one emergency department over another.
+    </p>
+</div>
+
+@code {
+    // Data model for our FAQ items
+    private class AccordionItem
+    {
+        public string Title { get; set; } = string.Empty;
+        public string Content { get; set; } = string.Empty;
+    }
+
+    // Initialize the list of items based on your screenshot content
+    private List<AccordionItem> Items = new List<AccordionItem>
+{
+new AccordionItem
+{
+Title = "Should I use the online wait times to determine where I should go?",
+Content = "In the case of a serious emergency always call emergency services or go to your nearest emergency department. The online Emergency Wait Time tool is meant to give the public general information about emergency and urgent care wait times."
+},
+new AccordionItem
+{
+Title = "What if my condition isn't an emergency and I don't know where else to go?",
+Content = "There are several other options for seeking care that includes walk-in and urgent care clinics. They are appropriate for conditions that need same-day attention but are not life-threatening. The hours of operation vary between clinics. Most start between 8:00 AM and 9:00 AM and are open until between 5:00 PM and 9:00 PM. Most have weekend hours as well. It is important to check the hours of the specific clinic you might be interested in."
+},
+new AccordionItem
+{
+Title = "How often are the online wait times, available beds and queue length updated?",
+Content = "Online wait times and all the dynamic information is updated in near-real time as it is added to the platform by the respective hospital/clinic."
+},
+new AccordionItem
+{
+Title = "Why are the wait times always changing?",
+Content = "Emergency demand can change quickly and dramatically. An incident such as a serious car accident can unexpectedly send more people to the Emergency Department and significantly impact wait time."
+},
+new AccordionItem
+{
+Title = "Are there days of the week that are busier?",
+Content = "Yes. Most Emergency Departments are about 10% busier on Mondays. This may be due to the inability for people to get in touch with their physicians over the weekend. However, it is important to note that any day can be very busy in the ED."
+}
+};
+}
