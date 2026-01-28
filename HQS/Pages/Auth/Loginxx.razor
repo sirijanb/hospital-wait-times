@@ -1,0 +1,93 @@
+@page "/loginxx"
+@using HQS.Infrastructure.Services
+@using Microsoft.AspNetCore.Identity
+@using System.ComponentModel.DataAnnotations
+@using System.Security.Claims
+@using global::HQS.Infrastructure.Identity
+@using static System.Net.WebRequestMethods
+@inject SignInManager<ApplicationUser> SignInManager
+@inject UserManager<ApplicationUser> UserManager
+@inject NavigationManager Navigation
+@inject IHttpClientFactory ClientFactory
+@inject AuthStateProvider AuthStateProvider
+
+<h3>Login</h3>
+
+<EditForm Model="_model" OnValidSubmit="LoginAsync">
+    <DataAnnotationsValidator />
+    <ValidationSummary />
+
+    <div>
+        <label>Email</label><br />
+        <InputText class="form-control" type="email" @bind-Value="_model.Email" />
+    </div>
+
+    <div>
+        <label>Password</label><br />
+        <InputText class="form-control" type="password" @bind-Value="_model.Password" />
+    </div>
+
+    <br />
+
+    <button class="btn btn-primary" type="submit" disabled="@_isSubmitting">
+        Login
+    </button>
+</EditForm>
+
+@if (!string.IsNullOrWhiteSpace(_error))
+{
+    <p style="color:red">@_error</p>
+}
+
+
+@code {
+    private LoginViewModel _model = new();
+    private string? _error;
+    private bool _isSubmitting;
+
+    private async Task LoginAsync()
+    {
+        _error = null;
+        _isSubmitting = true;
+
+        try
+        {
+            var http = ClientFactory.CreateClient("ServerAPI");
+            var response = await http.PostAsJsonAsync("api/auth/login", _model);
+            if (!response.IsSuccessStatusCode)
+            {
+                _error = await response.Content.ReadAsStringAsync();
+                _isSubmitting = false;
+                return;
+            }
+            var data = await response.Content.ReadFromJsonAsync<LoginResponse>();
+
+            if (data?.Role == "MasterAdmin")
+            {
+                Navigation.NavigateTo("/admin", forceLoad: true);
+            }
+            else
+            {
+                Navigation.NavigateTo("/update-info", forceLoad: true);
+            }
+        }
+        catch (Exception ex)
+        {
+            _error = $"Login failed: {ex.Message}";
+        }
+    }
+
+    // Move to ViewModels folder for reusability
+    public class LoginViewModel
+    {
+        [Required, EmailAddress]
+        public string Email { get; set; } = string.Empty;
+
+        [Required, MinLength(6)]
+        public string Password { get; set; } = string.Empty;
+    }
+    private class LoginResponse
+    {
+        public string Role { get; set; } = default!;
+    }
+}

@@ -62,9 +62,26 @@ builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationSc
 //     })
 // ;
 
+/*
+For address location
+*/
+builder.Services.AddHttpContextAccessor();
+
+builder.Services.AddHttpClient();   // ✅ ADD THIS
+
+builder.Services.AddHttpClient("ServerAPI", client =>
+{
+    client.BaseAddress = new Uri(
+        builder.Configuration["ServerBaseUrl"] ?? "http://localhost:5126/");
+});
+
+
 builder.Services.AddScoped<AuthStateProvider>();
 builder.Services.AddScoped<AuthenticationStateProvider>(provider =>
     provider.GetRequiredService<AuthStateProvider>());
+
+builder.Services.AddScoped<IHospitalLocateService, HospitalLocateService>();
+builder.Services.AddScoped<AddressState>();
 
 
 // --------------------
@@ -129,9 +146,11 @@ using (var scope = app.Services.CreateScope())
     var db = services.GetRequiredService<ApplicationDbContext>();
     var roleManager = services.GetRequiredService<RoleManager<IdentityRole>>();
     var userManager = services.GetRequiredService<UserManager<ApplicationUser>>();
-
+  
     await RoleSeeder.SeedAsync(roleManager);
+    
     await AdminSeeder.SeedAsync(userManager, roleManager);
+    
     await HospitalSeeder.SeedAsync(db);
 }
 app.Run();

@@ -1,0 +1,149 @@
+html,
+body {
+    margin: 0;
+    padding: 0;
+    overflow-x: hidden;
+    /* Prevents horizontal scroll from fixed widths */
+}
+
+.address-box {
+    position: relative;
+    max-width: 100%;
+    width: 850px;
+    min-width: 0;
+}
+
+.suggestions-list {
+    position: absolute;
+    top: 100%;
+    left: 0;
+    right: 0;
+    background: white;
+    border: 1px solid #ddd;
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    z-index: 3000;
+    max-height: 220px;
+    overflow-y: auto;
+}
+
+.suggestions-list li {
+    padding: 10px;
+    cursor: pointer;
+}
+
+.suggestions-list li:hover {
+    background: #f1f1f1;
+}
+
+/*location button*/
+.btn-location {
+    width: 38px;
+    height: 38px;
+    padding: 0;
+    border: 1px solid #ced4da;
+    border-radius: 6px;
+    background-color: #fff;
+    background-image: url('/images/crosshair.svg');
+    /* or .png */
+    background-repeat: no-repeat;
+    background-position: center;
+    background-size: 18px 18px;
+    cursor: pointer;
+    flex-shrink: 0;
+}
+
+.btn-location:hover {
+    background-color: #f8f9fa;
+}
+
+.btn-location:active {
+    background-color: #e9ecef;
+}
+
+.btn-clear {
+    position: absolute;
+    right: 10px;
+    top: 50%;
+    transform: translateY(-50%);
+    background: transparent;
+    border: none;
+    font-size: 18px;
+    color: #6c757d;
+    cursor: pointer;
+    z-index: 5;
+}
+
+.main-container {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    min-height: 100vh;
+    width: 100%;
+    text-align: center;
+    box-sizing: border-box;
+}
+
+.container-2 {
+    display: flex;
+    /* Activates flexbox layout */
+    width: 100%;
+    /* Takes full width */
+    max-width: 900px;
+    /* Optional: Sets a maximum width for the whole container */
+    margin: 20px auto;
+    /* Optional: Centers the container on the page */
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+    min-height: 300px;
+    border-radius: 20px;
+    /* Ensures columns are at least this tall */
+}
+
+.column {
+    flex: 1;
+    /* Makes both columns grow equally to fill the container */
+    padding: 20px;
+    /* Adds space around the content inside the columns */
+    /* Optional: Use flexbox within the columns to center content */
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    text-align: center;
+    background-color: rgb(246, 248, 251);
+    /* #e44545 */
+    /* #5f96d2 */
+}
+
+.column-left {
+    background-color: #e0f7fa;
+    /* Light blue background */
+    color: #004d40;
+    /* Darker text color for contrast */
+}
+
+.column-right {
+    background-color: #ffecb3;
+    /* Light yellow background */
+    color: #e65100;
+    /* Darker text color for contrast */
+}
+
+.column-heading {
+    color: #e44545
+}
+
+.column-body {
+    color: #5f96d2;
+    font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
+}
+
+.page-footer {
+    text-align: center;
+    margin-top: 30px;
+    /* Adds space between the columns and the footer */
+    font-size: 0.8rem;
+    color: #666;
+}

@@ -1,0 +1,195 @@
+@layout PublicPageLayout
+@page "/empanelled-hospitals"
+@using HQS.Domain.Entities
+@using HQS.Domain.Enums
+@using HQS.Infrastructure.Services
+@inject HospitalService HospitalService
+@inject IJSRuntime JS
+
+<div class="resources-main-container">
+    <section>
+        <h3>Empanelled Hospitals</h3>
+
+        @if (_loading)
+        {
+            <p>Loading hospitals...</p>
+        }
+        else if (_hospitals.Count == 0)
+        {
+            <p>No hospitals available.</p>
+        }
+        else
+        {
+            <div class="row mt-3">
+                @if (_hospitals != null)
+                {
+                    foreach (var hospital in PagedHospitals)
+                    {
+                        <div class="col-md-6 col-lg-4 mb-4">
+                            <div class="card h-100 shadow-sm edit-hospital-card">
+
+                                <!-- Thumbnail -->
+                                <img src="@hospital.ImagePath" class="card-img-top edit-hospital-thumb" alt="@hospital.Name"
+                                    onerror="this.src='/hospital-images/hospital-placeholder.png'" />
+
+                                <div class="card-body d-flex flex-column">
+
+                                    <!-- Name + Open Hours -->
+                                    <div class="d-flex justify-content-between align-items-start">
+                                        <h6 class="card-title mb-1">@hospital.Name</h6>
+
+                                        @* <span class="badge @GetOpenHoursBadgeClass(hospital.OpenHours)">
+                                            @hospital.OpenHours
+                                        </span> *@
+                                    </div>
+
+                                    <!-- Address -->
+                                    <p class="text-muted small mb-2">
+                                        @hospital.Address, @hospital.PostalCode
+                                    </p>
+
+                                    <!-- Bed Stats -->
+                                    @* <div class="d-flex justify-content-between mb-2">
+                                        <span>Total Beds: <strong>@hospital.TotalBeds</strong></span>
+                                        <span class="badge @GetBedAvailabilityClass(hospital)">
+                                            Available: @hospital.AvailableBeds
+                                        </span>
+                                    </div> *@
+
+                                    <!-- Queue Info -->
+                                    @* <div class="small text-muted mb-3">
+                                        Queue: <strong>@hospital.QueueLength</strong> |
+                                        Wait: <strong>@FormatWaitTime(hospital.WaitTimeMinutes)</strong>
+                                    </div> *@
+
+                                    <!-- Services -->
+                                    <div class="mb-3">
+                                        @foreach (var service in hospital.ServicesOffered)
+                                        {
+                                            <span class="badge me-1 mb-1 @GetServiceClass(service)">
+                                                @service
+                                            </span>
+                                        }
+                                    </div>
+                                    <!-- Buttons -->
+                                    <div class="resources-card-actions">
+                                        <button class="resources-btn-light" @onclick="() => OpenDirections(hospital)"
+                                            @onclick:stopPropagation="true">🗺 Directions</button>
+                                        @if (!string.IsNullOrWhiteSpace(hospital.Website))
+                                        {
+                                            <button class="resources-btn-light" @onclick="() => OpenWebsite(hospital)"
+                                                @onclick:stopPropagation="true">🌐 Website</button>
+                                        }
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    }
+                }
+            </div>
+
+            <div class="pagination-controls d-flex justify-content-center align-items-center gap-2 mt-1 mb-2">
+
+                <button class="btn btn-outline-secondary" disabled="@(_currentPage == 1)"
+                    @onclick="() => ChangePage(_currentPage - 1)">
+                    Prev
+                </button>
+
+                <span>
+                    Page @_currentPage of @TotalPages
+                </span>
+
+                <button class="btn btn-outline-secondary" disabled="@(_currentPage == TotalPages)"
+                    @onclick="() => ChangePage(_currentPage + 1)">
+                    Next
+                </button>
+
+            </div>
+
+        }
+    </section>
+</div>
+
+
+@code {
+    private List<Hospital> _hospitals = new();
+    private bool _loading = true;
+    private int _currentPage = 1;
+    private int _pageSize = 6; // cards per page
+
+    private int TotalPages =>
+    (_hospitals.Count + _pageSize - 1) / _pageSize;
+
+    private IEnumerable<Hospital> PagedHospitals =>
+    _hospitals
+    .Skip((_currentPage - 1) * _pageSize)
+    .Take(_pageSize);
+
+    protected override async Task OnInitializedAsync()
+    {
+        _hospitals = await HospitalService.GetAllHospitalsAsync();//GetPublicHospitalsAsync();
+        _loading = false;
+    }
+
+    private void ChangePage(int page)
+    {
+        _currentPage = page;
+    }
+
+    string FormatWaitTime(int minutes)
+    {
+        int h = minutes / 60;
+        int m = minutes % 60;
+        return h > 0 ? $"{h}h {m} min" : $"{m} min";
+    }
+
+    private string GetServiceClass(ServiceType service) => service switch
+    {
+        ServiceType.Emergency => "service-emergency",
+        ServiceType.UPCC => "service-upcc",
+        ServiceType.Pediatrics => "service-pediatrics",
+        ServiceType.Trauma => "service-trauma",
+        _ => "service-default"
+    };
+
+    async Task OpenDirections(Hospital h)
+    {
+        if (h.Latitude == null || h.Longitude == null)
+            return;
+
+        var url = $"https://www.google.com/maps/dir/?api=1&destination={h.Latitude},{h.Longitude}";
+        @* Navigation.NavigateTo(url, true); // true = open new tab *@
+        await JS.InvokeVoidAsync("window.open", url, "_blank");
+    }
+
+    async Task OpenWebsite(Hospital h)
+    {
+        if (string.IsNullOrWhiteSpace(h.Website))
+            return;
+
+        var url = h.Website.StartsWith("http")
+        ? h.Website
+        : $"https://{h.Website}";
+
+        @* Navigation.NavigateTo(url, true); *@
+        await JS.InvokeVoidAsync("window.open", url, "_blank");
+    }
+
+    string GetBedAvailabilityClass(Hospital h)
+    {
+        if (h.AvailableBeds == 0) return "bg-danger";
+        if (h.AvailableBeds < 5) return "bg-warning text-dark";
+        return "bg-success";
+    }
+
+    string GetOpenHoursBadgeClass(string? openHours)
+    {
+        if (string.IsNullOrWhiteSpace(openHours))
+            return "bg-secondary";
+
+        if (openHours.Contains("24", StringComparison.OrdinalIgnoreCase))
+            return "bg-success";
+
+        return "bg-info";
+    }
+}

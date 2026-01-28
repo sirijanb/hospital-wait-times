@@ -1,0 +1,182 @@
+@layout PublicPageLayout
+
+@page "/"
+@using HQS.Domain.Entities;
+@using HQS.Infrastructure.Services
+@inject IJSRuntime JS
+@inject NavigationManager Navigation
+@inject AddressState AddressState
+
+<div class="main-container">
+    <img src="logo.svg" />
+    <hr />
+    <p class="lead">
+        Please call 911 or go directly to your nearest emergency department <br />if you are in need of serious
+        medical
+        attention including experiencing chest pain, <br />severe bleeding or stroke symptoms.
+    </p>
+    <br />
+    <h3 class="lead"><strong>Find Care Near You</strong></h3>
+    <div class="d-flex gap-2 align-items-start">
+        <div class="address-box position-relative flex-grow-1">
+            <input class="form-control" placeholder="Enter your current location" value="@AddressState.Address"
+                @oninput="OnAddressInput" />
+
+            @if (!string.IsNullOrWhiteSpace(AddressState.Address))
+            {
+                <button type="button" class="btn-clear" title="Clear" @onclick="ClearAddress">
+                    ✕
+                </button>
+            }
+
+            @if (_suggestions.Any())
+            {
+                <ul class="suggestions-list">
+                    @foreach (var s in _suggestions)
+                    {
+                        <li @onclick="() => SelectAddress(s)">
+                            @s.DisplayName
+                        </li>
+                    }
+                </ul>
+            }
+        </div>
+
+        <button class="btn-location" title="Detect My Location" @onclick="DetectLocation">
+        </button>
+    </div>
+
+    @if (!string.IsNullOrEmpty(_error))
+    {
+        <p class="text-danger mt-2">@_error</p>
+    }
+
+    <div class="container-2">
+        <div class="column">
+            <h4 class="column-heading">Urgent Primary Care Center (UPCC)</h4>
+            <br />
+            <p class="column-body">Visit an UPCC for urgent but non-life threatening injury and/or
+                illness when you need to be seen by a
+                doctor or nurse practitioner within 12-24 hours.
+            </p>
+        </div>
+        <div class="column">
+            <h4 class="column-heading">Emergency Department (ED)</h4>
+            <br />
+            <p class="column-body">Visit an Emergency Department for critical or life-threatening
+                conditions or mental health emergencies, when timely decision
+                is practical.
+            </p>
+        </div>
+    </div>
+</div>
+
+@code {
+    @* private string _query = string.Empty; *@
+    private List<AddressSuggestion> _suggestions = new();
+    private CancellationTokenSource? _debounceCts;
+
+    private string? _error;
+    @* private async Task OnAddressInput(ChangeEventArgs e)
+    {
+        AddressState.Address = e.Value?.ToString() ?? string.Empty;
+
+        if (AddressState.Address.Length < 3)
+        {
+            _suggestions.Clear();
+            return;
+        } 
+
+        _suggestions = await JS.InvokeAsync<List<AddressSuggestion>>(
+        "locationInterop.searchAddress",
+        AddressState.Address
+        );
+    } *@
+
+    private async Task OnAddressInput(ChangeEventArgs e)
+    {
+        AddressState.Address = e.Value?.ToString() ?? string.Empty;
+
+        // Clear immediately if too short
+        if (AddressState.Address.Length < 3)
+        {
+            _suggestions.Clear();
+            StateHasChanged();
+            return;
+        }
+
+        // Cancel previous debounce
+        _debounceCts?.Cancel();
+        _debounceCts = new CancellationTokenSource();
+        var token = _debounceCts.Token;
+
+        try
+        {
+            // Wait for user to stop typing
+            await Task.Delay(350, token);
+
+            if (token.IsCancellationRequested)
+                return;
+
+            _suggestions = await JS.InvokeAsync<List<AddressSuggestion>>(
+            "locationInterop.searchAddress",
+            AddressState.Address
+            );
+        }
+        catch (TaskCanceledException)
+        {
+            // Expected when typing continues
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Address search error: {ex.Message}");
+            _suggestions.Clear();
+        }
+
+        StateHasChanged();
+    }
+
+
+    private void SelectAddress(AddressSuggestion address)
+    {
+        AddressState.Address = address.DisplayName;
+        AddressState.Lat = address.Lat;
+        AddressState.Lon = address.Lon;
+        _suggestions.Clear();
+
+        Navigation.NavigateTo(
+        $"/search-results-map?lat={AddressState.Lat}&lon={AddressState.Lon}"
+        );
+    }
+
+    private async Task DetectLocation()
+    {
+        try
+        {
+            var coords = await JS.InvokeAsync<GeoPosition>("locationInterop.getCurrentLocation");
+
+            Navigation.NavigateTo(
+            $"/search-results-map?lat={coords.Lat}&lon={coords.Lng}"
+            );
+        }
+        catch(Exception ex)
+        {
+            _error = $"Unable to detect location. Please enter address manually. {ex.Message}";
+        }
+    }
+
+    private void ClearAddress()
+    {
+        AddressState.Address = string.Empty;
+        _suggestions.Clear();
+
+        // Optional but recommended
+        @* _hospitals = null;
+    _selectedHospitalId = null;
+    _expandedHospitalId = null;
+
+    // Optional: clear focused map marker
+    JS.InvokeVoidAsync("mapInterop.clearFocus"); *@
+    }
+
+}

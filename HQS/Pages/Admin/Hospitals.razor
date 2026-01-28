@@ -85,7 +85,7 @@
 
                     <!-- Thumbnail -->
                     <img src="@hospital.ImagePath" class="card-img-top edit-hospital-thumb" alt="@hospital.Name"
-                        onerror="this.src='/images/hospital-placeholder.png'" />
+                        onerror="this.src='/hospital-images/hospital-placeholder.png'" />
 
                     <div class="card-body d-flex flex-column">
 
@@ -114,7 +114,7 @@
                         <!-- Queue Info -->
                         <div class="small text-muted mb-3">
                             Queue: <strong>@hospital.QueueLength</strong> |
-                            Wait: <strong>@hospital.WaitTimeMinutes min</strong>
+                            Wait: <strong>@FormatWaitTime(hospital.WaitTimeMinutes)</strong>
                         </div>
 
                         <!-- Services -->
@@ -217,7 +217,7 @@
         return "bg-success";
     }
 
-    string GetOpenHoursBadgeClass(string openHours)
+    string GetOpenHoursBadgeClass(string? openHours)
     {
         if (string.IsNullOrWhiteSpace(openHours))
             return "bg-secondary";
@@ -239,5 +239,10 @@
             _ => "bg-secondary"
         };
     }
-
+    string FormatWaitTime(int minutes)
+    {
+        int h = minutes / 60;
+        int m = minutes % 60;
+        return h > 0 ? $"{h}h {m} min" : $"{m} min";
+    }
 }

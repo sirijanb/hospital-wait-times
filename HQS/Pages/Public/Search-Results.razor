@@ -1,0 +1,149 @@
+@page "/search-results-old"
+@using HQS.Domain.Entities;
+@using HQS.Domain.Enums
+@using HQS.Infrastructure.DTOs
+@using HQS.Infrastructure.Services
+@using Microsoft.AspNetCore.Components
+@inject IJSRuntime JS
+@inject IHospitalLocateService HospitalLocateService
+
+
+<div class="results-container">
+    <!-- LEFT: LIST -->
+    <div class="results-list">
+        @if (_hospitals == null)
+        {
+            <p>Loading hospitals...</p>
+        }
+        else
+        {
+            @foreach (var h in _hospitals)
+            {
+                <div class="@GetHospitalCardClass(h)" @onclick="() => SelectHospital(h)">
+
+                    @* <img src="@GetHospitalImage(h)" class="thumb" alt="Hospital image" /> *@
+
+                    <div class="results-hospital-body">
+
+                        <div class="d-flex justify-content-between align-items-start">
+                            <h5 class="results-hospital-title">@h.Name</h5>
+
+                            @* <span class="badge open-hours">
+                            @h.OpenHours
+                        </span> *@
+                        </div>
+
+                        <p class="results-hospital-address">
+                            @h.Address, @h.PostalCode
+                        </p>
+
+                        <div class="results-beds">
+                            🛏 <strong>@h.AvailableBeds</strong>
+                            <span class="text-muted">
+                                / @h.TotalBeds beds available
+                            </span>
+                        </div>
+
+                        <div class="services">
+                            @foreach (var s in h.ServicesOffered)
+                            {
+                                <span class="service-badge @GetServiceClass(s)">
+                                    @s
+                                </span>
+                            }
+                        </div>
+                    </div>
+                </div>
+            }
+        }
+    </div>
+
+    <!-- RIGHT: MAP -->
+    <div id="map" class="results-map"></div>
+</div>
+
+@code {
+    @* private List<HospitalLocateDto>? _hospitals; *@
+        private List<Hospital>? _hospitals;
+    private Guid? _selectedHospitalId;
+    @* private string _selectedHospitalId = string.Empty; *@
+
+
+    @* // These come from Page 1 (address selection)
+    private double _userLat;
+    private double _userLon; *@
+    [Parameter, SupplyParameterFromQuery]
+    public double Lat { get; set; }
+
+    [Parameter, SupplyParameterFromQuery]
+    public double Lon { get; set; }
+
+
+    protected override async Task OnInitializedAsync()
+    {
+        _hospitals = await HospitalLocateService.GetNearbyHospitalsAsync(Lat, Lon, 100000, "Canada");
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (!firstRender)
+            return;
+
+        await JS.InvokeVoidAsync(
+        "mapInterop.initMap",
+        Lat,
+        Lon
+        );
+        if (_hospitals is not null)
+        {
+            await JS.InvokeVoidAsync(
+            "mapInterop.addHospitals",
+            _hospitals
+            );
+        }
+        @* if (firstRender)
+        {
+            // Assume lat/lon already available (from page 1)
+            await JS.InvokeVoidAsync("mapInterop.initMap", _userLat, _userLon);
+
+            _hospitals = await LoadNearbyHospitalsAsync();
+
+            await JS.InvokeVoidAsync("mapInterop.addHospitals", _hospitals);
+            StateHasChanged();
+        } *@
+    }
+
+    private async Task SelectHospital(Hospital hospital)//(HospitalLocateDto hospital)
+    {
+        _selectedHospitalId = hospital.HospitalId;
+
+        await JS.InvokeVoidAsync(
+        "mapInterop.focusHospital",
+        hospital.Latitude,
+        hospital.Longitude
+        );
+    }
+
+    private string GetHospitalCardClass(Hospital h)//(HospitalLocateDto h)
+    {
+        return _selectedHospitalId == h.HospitalId
+        ? "hospital-list-card selected"
+        : "hospital-list-card";
+    }
+
+    private string GetHospitalImage(Hospital h)//(HospitalLocateDto h)
+    {
+        return !string.IsNullOrWhiteSpace(h.ImagePath)
+        ? h.ImagePath
+        : "/images/hospital-placeholder.png";
+    }
+
+    private string GetServiceClass(ServiceType service) => service switch
+    {
+        ServiceType.Emergency => "service-emergency",
+        ServiceType.UPCC => "service-upcc",
+        ServiceType.Pediatrics => "service-pediatrics",
+        ServiceType.Trauma => "service-trauma",
+        _ => "service-default"
+    };
+}
