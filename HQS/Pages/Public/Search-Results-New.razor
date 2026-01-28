@@ -7,11 +7,14 @@
 @using HQS.Infrastructure.Services
 @using Microsoft.AspNetCore.Components
 @using System.Runtime.InteropServices
+@using Microsoft.AspNetCore.SignalR.Client
+
 @inject IJSRuntime JS
 @inject IHospitalLocateService HospitalLocateService
 @inject AddressState AddressState
 @inject NavigationManager Navigation
 @inject HospitalService hs
+@implements IAsyncDisposable
 
 <div class="d-flex gap-1 align-items-start">
     <div class="address-box position-relative flex-grow-1 ms-2 me-3">
@@ -217,6 +220,8 @@
     private readonly List<string> _allServices = new() { "Emergency", "UPCC", "Pediatrics", "Trauma", "Cardiology",
 "General" };
 
+    private HubConnection? _hubConnection;
+
     protected override async Task OnInitializedAsync()
     {
         _hospitals = await hs.GetAllHospitalsAsync();//await HospitalLocateService.GetNearbyHospitalsAsync(Lat, Lon, _radiusInKm
@@ -247,6 +252,8 @@
         {
             _error = "Unable to fetch data. Please try again.";
         }
+
+        await InitSignalRAsync(); // for signalR
 
         @* PopulatePins(); *@
     }
@@ -371,7 +378,7 @@
 
             _selectedHospitalId = _expandedHospitalId = null;//string.Empty;
             StateHasChanged();
-            
+
             await LoadNewHospitalsAsync();
         }
         catch (Exception ex)
@@ -465,6 +472,7 @@
         @* Navigation.NavigateTo(url, true); // true = open new tab *@
         await JS.InvokeVoidAsync("window.open", url, "_blank");
     }
+
     async Task OpenWebsite(Hospital h)
     {
         if (string.IsNullOrWhiteSpace(h.Website))
@@ -482,7 +490,19 @@
     {
         int h = minutes / 60;
         int m = minutes % 60;
-        return h > 0 ? $"{h}h {m} min" : $"{m} min";
+        if (h > 0)
+        {
+            if (m > 0)
+            {
+                return $"{h}hr {m}min";
+            }
+            return $"{h}hr";
+        }
+        else
+        {
+            return $"{m}min";
+        }
+        @* return h > 0 ? $"{h}h {m} min" : $"{m} min"; *@
     }
     string GetOpenHoursBadgeClass(string? openHours)
     {
@@ -493,5 +513,35 @@
             return "bg-success";
 
         return "bg-info";
+    }
+    private async Task InitSignalRAsync()
+    {
+        _hubConnection = new HubConnectionBuilder()
+        .WithUrl(Navigation.ToAbsoluteUri("hubs/hospital"))
+        .WithAutomaticReconnect()
+        .Build();
+
+        _hubConnection.On<UpdateHospitalStatusModel>("HospitalDataUpdated", ApplyHospitalUpdate);
+        await _hubConnection.StartAsync();
+    }
+
+    private void ApplyHospitalUpdate(UpdateHospitalStatusModel updatedData)
+    {
+        var hospital = _hospitals?
+        .FirstOrDefault(h => h.HospitalId == updatedData.HospitalId);
+
+        if (hospital == null) return;
+
+        hospital.QueueLength = updatedData.QueueLength;
+        hospital.WaitTimeMinutes = updatedData.WaitTimeMinutes;
+        hospital.AvailableBeds = updatedData.AvailableBeds;
+
+        InvokeAsync(StateHasChanged);
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        if (_hubConnection != null)
+            await _hubConnection.DisposeAsync();
     }
 }

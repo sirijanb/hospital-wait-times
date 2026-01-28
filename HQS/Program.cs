@@ -6,6 +6,7 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.AspNetCore.Components.Authorization;
 using Microsoft.AspNetCore.Authentication.Cookies;
+using HQS.Hubs;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -111,6 +112,7 @@ builder.Services.AddSwaggerGen(options =>
 // --------------------
 builder.Services.AddScoped<HospitalRepService>();
 builder.Services.AddScoped<HospitalService>();
+builder.Services.AddSignalR();
 
 var app = builder.Build();
 
@@ -134,7 +136,10 @@ app.UseAuthentication();
 app.UseAuthorization();
 
 app.MapControllers();
+
+app.MapHub<HospitalHub>("/hubs/hospital");
 app.MapBlazorHub();
+
 app.MapFallbackToPage("/_Host");
 
 // --------------------

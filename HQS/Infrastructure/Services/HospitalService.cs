@@ -3,16 +3,20 @@ using HQS.Infrastructure.Data;
 using Microsoft.EntityFrameworkCore;
 using HQS.Domain.Entities;
 using Microsoft.AspNetCore.Components.Forms;
+using Microsoft.AspNetCore.SignalR;
+using HQS.Hubs;
 
 namespace HQS.Infrastructure.Services
 {
     public class HospitalService
     {
         private readonly ApplicationDbContext _db;
+        private readonly IHubContext<HospitalHub> _hub;
 
-        public HospitalService(ApplicationDbContext db)
+        public HospitalService(ApplicationDbContext db, IHubContext<HospitalHub> hub)
         {
             _db = db;
+            _hub = hub;
         }
 
         public async Task<List<HospitalLookupDto>> GetHospitalsAsync()
@@ -61,7 +65,7 @@ namespace HQS.Infrastructure.Services
                 // continue;
             }
 
-            
+
             Console.WriteLine($"Finished reading {hospitals.Count} valid hospitals.");
 
             return hospitals;
@@ -141,21 +145,24 @@ namespace HQS.Infrastructure.Services
 
 
         //For hospital-rep only
-        public async Task UpdateOperationalInfoAsync(Guid hospitalId, int availableBeds, int queueLength, int waitTimeMinutes)
+        public async Task UpdateOperationalInfoAsync(UpdateHospitalStatusModel payload)//(Guid hospitalId, int availableBeds, int queueLength, int waitTimeMinutes)
         {
-            var hospital = await _db.Hospitals.FindAsync(hospitalId);
+            var hospital = await _db.Hospitals.FindAsync(payload.HospitalId);
             if (hospital == null)
                 throw new Exception("Hospital not found");
 
-            if (availableBeds > hospital.TotalBeds)
+            if (payload.AvailableBeds > hospital.TotalBeds)
                 throw new ApplicationException(
-                    $"Available beds ({availableBeds}) cannot exceed total beds ({hospital.TotalBeds}).");
+                    $"Available beds ({payload.AvailableBeds}) cannot exceed total beds ({hospital.TotalBeds}).");
 
-            hospital.AvailableBeds = availableBeds;
-            hospital.QueueLength = queueLength;
-            hospital.WaitTimeMinutes = waitTimeMinutes;
-
+            hospital.AvailableBeds = payload.AvailableBeds;
+            hospital.QueueLength = payload.QueueLength;
+            hospital.WaitTimeMinutes = payload.WaitTimeMinutes;
+            
             await _db.SaveChangesAsync();
+            
+            //signalR code to notify frontend on public website
+            await _hub.Clients.All.SendAsync("HospitalDataUpdated", payload);
         }
 
         public async Task<List<Hospital>> GetPublicHospitalsAsync()

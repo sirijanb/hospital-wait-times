@@ -66,7 +66,7 @@ else
                             </tr>
                             <tr>
                                 <th>Open Hours</th>
-                                <td>@_hospital.OpenHours</td>
+                                <td>@(string.IsNullOrWhiteSpace(_hospital.OpenHours) ? "-" : _hospital.OpenHours)</td>
                             </tr>
                             <tr>
                                 <th>Total Beds</th>
@@ -77,7 +77,6 @@ else
                                 <td>@string.Join(", ", _hospital.ServicesOffered)</td>
                             </tr>
                         </table>
-
                     </div>
                 </div>
             </div>
@@ -116,18 +115,16 @@ else
                                 Save Updates
                             </button>
                         </EditForm>
+                        @if (!string.IsNullOrWhiteSpace(_success))
+                        {
+                            <p class="text-success mt-2">@_success</p>
+                        }
                     </div>
                 </div>
             </div>
 
         </div>
     </div>
-
-
-    @if (!string.IsNullOrWhiteSpace(_success))
-    {
-        <p class="text-success mt-2">@_success</p>
-    }
 }
 
 @if (!string.IsNullOrWhiteSpace(_error))
@@ -161,6 +158,7 @@ else
 
         if (_hospital != null)
         {
+            _model.HospitalId = hospitalId.Value;
             _model.AvailableBeds = _hospital.AvailableBeds;
             _model.QueueLength = _hospital.QueueLength;
             _model.WaitTimeMinutes = _hospital.WaitTimeMinutes;
@@ -175,30 +173,15 @@ else
         _success = null;
         try
         {
-            await HospitalService.UpdateOperationalInfoAsync(
-            _hospital!.HospitalId,
-            _model.AvailableBeds,
-            _model.QueueLength,
-            _model.WaitTimeMinutes);
+            await HospitalService.UpdateOperationalInfoAsync(_model);
+
             _model = new();//reset form
-            _success = "Updated successfully.";
+            _success = "Updated successfully!";
             _saving = false;
         }
         catch (Exception ex)
         {
             _error = ex.Message;
         }
-    }
-
-    private class UpdateHospitalStatusModel
-    {
-        [Range(0, 10000)]
-        public int AvailableBeds { get; set; }
-
-        [Range(0, 10000)]
-        public int QueueLength { get; set; }
-
-        [Range(0, 1440)]
-        public int WaitTimeMinutes { get; set; }
     }
 }
