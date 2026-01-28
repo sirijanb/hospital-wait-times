@@ -1,0 +1,35 @@
+footer {
+    background-color: #f8f9fa;
+    color: #333;
+    padding: 15px 10px;
+    text-align: center;
+    border-top: 1px solid #dee2e6;
+    font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
+}
+
+.footer-content {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    width: 100%;
+    /* gap: 15px; */
+    /* Adds space between the three sections */
+    /* max-width: 1200px; */
+    /* margin: 0 auto; */
+}
+
+::deep .footer-nav,
+.footer-nav a,
+.creator-info a {
+    color: #0077b5;
+    /* Professional LinkedIn blue */
+    text-decoration: none;
+}
+
+::deep .footer-nav,
+.footer-nav a:hover,
+.creator-info,
+.creator-info a:hover {
+    text-decoration: none;
+}

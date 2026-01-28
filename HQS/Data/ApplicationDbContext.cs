@@ -26,7 +26,7 @@ namespace HQS.Infrastructure.Data
                 entity.HasKey(h => h.HospitalId);
                 entity.Property(h => h.Name).IsRequired().HasMaxLength(200);
                 entity.Property(h => h.Address).IsRequired();
-                entity.Property(h => h.PostalCode).IsRequired().HasMaxLength(20);
+                entity.Property(h => h.PostalCode).HasMaxLength(20);
             });
 
             builder.Entity<HospitalRep>(entity =>

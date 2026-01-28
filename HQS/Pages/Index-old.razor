@@ -1,0 +1,101 @@
+﻿@page "/index-old"
+@using HQS.Domain.Entities
+@using HQS.Domain.Enums
+@using HQS.Infrastructure.Services
+@inject HospitalService HospitalService
+
+<h1 class="mb-3">Hospital Queue & Wait Time Tracking Dashboard</h1>
+
+<p class="lead">
+    Transparent emergency wait times to help patients make informed decisions.
+</p>
+
+<hr />
+
+<!-- ================= ABOUT ================= -->
+<section class="mb-5">
+    <h2>About</h2>
+
+    <p>
+        Emergency departments are often overcrowded, leaving patients unaware
+        of long wait times or bed availability.
+    </p>
+
+    <p>
+        This platform enables hospitals to publish real-time operational data
+        such as wait times, queue length, and available beds — helping patients
+        choose the right facility faster and reducing overall congestion.
+    </p>
+</section>
+
+<!-- ================= EMPANELLED HOSPITALS ================= -->
+<section>
+    <h2 class="mb-3">Empanelled Hospitals</h2>
+
+    @if (_loading)
+    {
+        <p>Loading hospitals...</p>
+    }
+    else if (_hospitals.Count == 0)
+    {
+        <p>No hospitals available.</p>
+    }
+    else
+    {
+        <div class="hospital-scroll-container">
+            @foreach (var h in _hospitals.Take(3))
+            {
+                <div class="hospital-card">
+
+                    <img src="@h.ImagePath" alt="@h.Name" class="hospital-img" />
+
+                    <div class="hospital-body">
+
+                        <div class="d-flex justify-content-between align-items-start">
+                            <h5 class="hospital-title">@h.Name</h5>
+
+                            <span class="badge open-hours">
+                                @h.OpenHours
+                            </span>
+                        </div>
+
+                        <p class="hospital-address">@h.Address, @h.PostalCode</p>
+
+                        <div class="beds">
+                            🛏 <strong>@h.AvailableBeds</strong>
+                            <span class="text-muted">/ @h.TotalBeds beds available</span>
+                        </div>
+
+                        <div class="services">
+                            @foreach (var s in h.ServicesOffered)
+                            {
+                                <span class="service-badge @GetServiceClass(s)">
+                                    @s
+                                </span>
+                            }
+                        </div>
+                    </div>
+                </div>
+            }
+        </div>
+    }
+</section>
+
+@code {
+    private List<Hospital> _hospitals = new();
+    private bool _loading = true;
+
+    protected override async Task OnInitializedAsync()
+    {
+        _hospitals = await HospitalService.GetAllHospitalsAsync();//GetPublicHospitalsAsync();
+        _loading = false;
+    }
+    private string GetServiceClass(ServiceType service) => service switch
+    {
+        ServiceType.Emergency => "service-emergency",
+        ServiceType.UPCC => "service-upcc",
+        ServiceType.Pediatrics => "service-pediatrics",
+        ServiceType.Trauma => "service-trauma",
+        _ => "service-default"
+    };
+}

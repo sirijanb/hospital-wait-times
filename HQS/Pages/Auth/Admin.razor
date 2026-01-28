@@ -1,5 +1,6 @@
 @page "/admin"
 @inject AuthenticationStateProvider Auth
+@inject NavigationManager Navigation
 @attribute [Authorize(Roles = "MasterAdmin")]
 
 <h3>Master Admin Dashboard</h3>
@@ -18,7 +19,32 @@
     protected override async Task OnInitializedAsync()
     {
         var state = await Auth.GetAuthenticationStateAsync();
-        Console.WriteLine(state.User.Identity?.IsAuthenticated);
+        Console.WriteLine($">>>>> IsAuthenticated: {state.User.Identity?.IsAuthenticated}");
         Console.WriteLine(string.Join(",", state.User.Claims.Select(c => $"{c.Type}:{c.Value}")));
+
+
+        @* var authState = await Auth.GetAuthenticationStateAsync();
+        var user = authState.User;
+        if (user != null && user.Identity != null)
+        {
+            if (!user.Identity.IsAuthenticated || !user.IsInRole("MasterAdmin"))
+            {
+                Navigation.NavigateTo("/login");
+            }
+        } *@
+    }
+
+    protected override void OnInitialized()
+    {
+        @* Console.WriteLine(">>>> OnInitialized fired!!"); *@
+        @* var authState = await Auth.GetAuthenticationStateAsync();
+        var user = authState.User;
+        if (user != null && user.Identity != null)
+        {
+            if (!user.Identity.IsAuthenticated || !user.IsInRole("MasterAdmin"))
+            {
+                Navigation.NavigateTo("/login");
+            }
+        } *@
     }
 }

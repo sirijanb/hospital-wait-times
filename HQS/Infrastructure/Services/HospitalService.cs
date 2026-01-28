@@ -6,7 +6,6 @@ using Microsoft.AspNetCore.Components.Forms;
 
 namespace HQS.Infrastructure.Services
 {
-
     public class HospitalService
     {
         private readonly ApplicationDbContext _db;
@@ -28,8 +27,45 @@ namespace HQS.Infrastructure.Services
                 .ToListAsync();
         }
 
+        // public async Task<List<Hospital>> GetAllHospitalsAsync()
+        //     => await _db.Hospitals.AsNoTracking().ToListAsync();
+
         public async Task<List<Hospital>> GetAllHospitalsAsync()
-            => await _db.Hospitals.AsNoTracking().ToListAsync();
+        {
+            var hospitals = new List<Hospital>();
+            var query = _db.Hospitals.AsNoTracking().AsAsyncEnumerable();
+            try
+            {
+                await foreach (var hospital in query)
+                {
+                    // 2. Print details of the successfully mapped item
+                    // This lets you see which items are working
+                    // Console.WriteLine($"Successfully read Hospital ID: {hospital.HospitalId}, Name: {hospital.Name}");
+
+                    hospitals.Add(hospital);
+                }
+            }
+            catch (Exception ex)
+            {
+                // 3. Catch the exception exactly where it occurs (the line above this one)
+                Console.WriteLine("\n\n---------------------------------");
+                Console.WriteLine("!!! FAILED TO MAP A HOSPITAL ROW !!!");
+                // The exception will still contain the useful SqlNullValueException details:
+                Console.WriteLine($"Error Details: {ex.Message}");
+                Console.WriteLine("---------------------------------\n\n");
+
+                // Re-throw the exception if you still want the overall operation to fail
+                throw;
+
+                // Or use 'continue;' if you want to skip the bad row and keep processing valid ones
+                // continue;
+            }
+
+            
+            Console.WriteLine($"Finished reading {hospitals.Count} valid hospitals.");
+
+            return hospitals;
+        }
 
         public async Task AddAsync(Hospital hospital, IBrowserFile? imageFile)
         {
@@ -53,7 +89,7 @@ namespace HQS.Infrastructure.Services
             }
             else
             {
-                hospital.ImagePath = "/hospital-images/default.png";
+                hospital.ImagePath = "/hospital-images/hospital-placeholder.png";
             }
 
             _db.Hospitals.Add(hospital);
@@ -75,6 +111,34 @@ namespace HQS.Infrastructure.Services
                 .AsNoTracking()
                 .FirstOrDefaultAsync(h => h.HospitalId == hospitalId);
         }
+
+        public async Task<List<string>> GetAllHospitalNamesAsync()
+        {
+            var existingNames = await _db.Hospitals
+                                        .AsNoTracking()
+                                        .Select(h => h.Name)
+                                        .ToListAsync();
+            return existingNames;
+        }
+
+        public async Task<bool> CheckNameExistsAsync(string hospitalName)
+        {
+            if (string.IsNullOrWhiteSpace(hospitalName))
+            {
+                return false;
+            }
+
+            return await _db.Hospitals
+                .AsNoTracking() // As we are only checking existence, tracking is not needed
+                .AnyAsync(h => h.Name == hospitalName);
+        }
+
+        public async Task AddRangeOfNewHospitals(List<Hospital> newHospitals)
+        {
+            _db.Hospitals.AddRange(newHospitals);
+            await _db.SaveChangesAsync();
+        }
+
 
         //For hospital-rep only
         public async Task UpdateOperationalInfoAsync(Guid hospitalId, int availableBeds, int queueLength, int waitTimeMinutes)
