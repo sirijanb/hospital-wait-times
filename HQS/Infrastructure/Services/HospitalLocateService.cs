@@ -77,12 +77,24 @@ namespace HQS.Infrastructure.Services
             //             out center tags;
             //         ";
 
+            // var query = $@"
+            //         [out:json][timeout:120];
+            //         area[""name""=""{country}""][""boundary""=""administrative""][""admin_level""=""2""]->.country_area;
+            //         (
+            //         nwr[""amenity""~""hospital""](area.country_area)->.all_hospitals;
+            //         nwr[""healthcare""~""hospital""](area.country_area)->.all_hospitals;
+            //         );
+            //         // Dynamic parameters inserted here:
+            //         nwr.all_hospitals(around:{radiusInMeters}, {lat}, {lon});
+            //         out center tags;
+            //     ";
+
             var query = $@"
                     [out:json][timeout:120];
                     area[""name""=""{country}""][""boundary""=""administrative""][""admin_level""=""2""]->.country_area;
                     (
-                    nwr[""amenity""~""hospital""](area.country_area)->.all_hospitals;
-                    nwr[""healthcare""~""hospital""](area.country_area)->.all_hospitals;
+                    nwr[""healthcare""=""hospital""](area.country_area)->.all_facilities;
+                    nwr[""healthcare""=""clinic""](area.country_area)->.all_facilities;
                     );
                     // Dynamic parameters inserted here:
                     nwr.all_hospitals(around:{radiusInMeters}, {lat}, {lon});
