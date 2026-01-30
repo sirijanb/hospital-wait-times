@@ -215,7 +215,7 @@
     private List<AddressSuggestion> _suggestions = new();
     private string? _error;
     private bool toggleOpen247;
-    @* private int _radiusInKm = 25; *@
+    private int _radiusInKm = 100;
     @* private string? _selectedService; *@
     private readonly List<string> _allServices = new() { "Emergency", "UPCC", "Pediatrics", "Trauma", "Cardiology",
 "General" };
@@ -224,8 +224,8 @@
 
     protected override async Task OnInitializedAsync()
     {
-        _hospitals = await hs.GetAllHospitalsAsync();//await HospitalLocateService.GetNearbyHospitalsAsync(Lat, Lon, _radiusInKm
-                                                     @* *1000, "Canada"); *@
+        @* _hospitals = await hs.GetAllHospitalsAsync(); *@
+        _hospitals = await HospitalLocateService.GetNearbyHospitalsAsync(Lat, Lon, _radiusInKm * 1000, "Canada");
         if (_hospitals is not null && _hospitals.Count > 0)
         {
             foreach (var h in _hospitals)
@@ -411,9 +411,10 @@
         _error = "Searching...";
         _hospitals?.Clear();
         _suggestions.Clear();
-        _hospitals = await hs.GetAllHospitalsAsync();//await HospitalLocateService.GetNearbyHospitalsAsync(AddressState.Lat,
-                                                     @* AddressState.Lon, _radiusInKm * 1000, *@
-                                                     @* "Canada"); *@
+        @* _hospitals = await hs.GetAllHospitalsAsync(); *@
+        _hospitals = await HospitalLocateService.GetNearbyHospitalsAsync(AddressState.Lat,
+        AddressState.Lon, _radiusInKm * 1000,
+        "Canada");
 
         if (_hospitals is not null && _hospitals.Count > 0)
         {
