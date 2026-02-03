@@ -102,23 +102,34 @@
                         @* <div class=""> *@
                         <div class="results-2-card-header">
                             <h5 class="results-hospital-title">@h.Name</h5>
-                            @if (h.DistanceKm > 0)
+                            @* @if (h.DistanceKm > 0)
                             {
-                                <strong>📍@Math.Round(h.DistanceKm)km from you</strong>
-                            }
+                                <span>📍@Math.Round(h.DistanceKm)km from you</span>
+                            } *@
+                            <span class="badge @GetOpenHoursBadgeClass(h.OpenHours)">
+                                @h.OpenHours
+                            </span>
                         </div>
 
                         <div>
-                            <div>⏳ Waiting Time: <strong>@FormatWaitTime(h.WaitTimeMinutes)</strong></div>
+                            @* <span class="badge @GetOpenHoursBadgeClass(h.OpenHours)">
+                                @h.OpenHours
+                            </span> *@
+                            @if (h.DistanceKm > 0)
+                            {
+                                <span>📍@Math.Round(h.DistanceKm)km from you</span>
+                            }
+                            @* <div>⏳ Waiting Time: <strong>@FormatWaitTime(h.WaitTimeMinutes)</strong></div>
                             <div>👥 Patients in Queue: <strong>@h.QueueLength</strong></div>
-                            <div>🛏 Beds Available: <strong>@h.AvailableBeds/@h.TotalBeds</strong></div>
-
+                            <div>🛏 Beds Available: <strong>@h.AvailableBeds/@h.TotalBeds</strong></div> *@
+                            <div>⏳ Waiting Time: <strong>@FormatWaitTime(h.WaitTimeMinutes)</strong> • 👥 Patients in Queue:
+                                <strong>@h.QueueLength</strong> • 🛏 Beds Available:
+                                <strong>@h.AvailableBeds/@h.TotalBeds</strong>
+                            </div>
                             @* • 👤 All Ages *@
                         </div>
                         @*badge open-hours *@
-                        <span class="badge @GetOpenHoursBadgeClass(h.OpenHours)">
-                            @h.OpenHours
-                        </span>
+
 
                         <div class="services">
                             @foreach (var s in h.ServicesOffered)
@@ -215,7 +226,7 @@
     private List<AddressSuggestion> _suggestions = new();
     private string? _error;
     private bool toggleOpen247;
-    private int _radiusInKm = 100;
+    @* private int _radiusInKm = 100; *@
     @* private string? _selectedService; *@
     private readonly List<string> _allServices = new() { "Emergency", "UPCC", "Pediatrics", "Trauma", "Cardiology",
 "General" };
@@ -224,8 +235,8 @@
 
     protected override async Task OnInitializedAsync()
     {
-        @* _hospitals = await hs.GetAllHospitalsAsync(); *@
-        _hospitals = await HospitalLocateService.GetNearbyHospitalsAsync(Lat, Lon, _radiusInKm * 1000, "Canada");
+        _hospitals = await hs.GetAllHospitalsAsync();
+        @* _hospitals = await HospitalLocateService.GetNearbyHospitalsAsync(Lat, Lon, _radiusInKm * 1000, "Canada"); *@
         if (_hospitals is not null && _hospitals.Count > 0)
         {
             foreach (var h in _hospitals)
@@ -411,10 +422,10 @@
         _error = "Searching...";
         _hospitals?.Clear();
         _suggestions.Clear();
-        @* _hospitals = await hs.GetAllHospitalsAsync(); *@
-        _hospitals = await HospitalLocateService.GetNearbyHospitalsAsync(AddressState.Lat,
+        _hospitals = await hs.GetAllHospitalsAsync();
+        @* _hospitals = await HospitalLocateService.GetNearbyHospitalsAsync(AddressState.Lat,
         AddressState.Lon, _radiusInKm * 1000,
-        "Canada");
+        "Canada"); *@
 
         if (_hospitals is not null && _hospitals.Count > 0)
         {
