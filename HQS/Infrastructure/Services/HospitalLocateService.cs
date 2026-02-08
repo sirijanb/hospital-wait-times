@@ -144,11 +144,11 @@ namespace HQS.Infrastructure.Services
                     var existingNames = await _hospitalService.GetAllHospitalNamesAsync();
 
                     var existingNameSet = new HashSet<string>(existingNames, StringComparer.OrdinalIgnoreCase);
-                    
+
                     Console.WriteLine($">>> existing count: {existingNameSet.Count}");
 
                     await ParseDataAndAddNewHospitalsToDB(data, existingNameSet);
-                    
+
                     var _list = await _hospitalService.GetAllHospitalsAsync();
                     return _list;
                 }
@@ -243,7 +243,7 @@ namespace HQS.Infrastructure.Services
                     }
                     else
                     {
-                        hospital.OpenHours = null;
+                        hospital.OpenHours = "24 x 7";
                     }
 
                     if (item.Tags.TryGetValue("website", out var _website))

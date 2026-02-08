@@ -68,6 +68,7 @@ public class HospitalRepService
     {
         return await _dbContext.HospitalRepresentatives
             .Include(r => r.Hospital)
+            .OrderBy(r => r.IsApproved)
             .AsNoTracking()
             .ToListAsync();
     }
@@ -108,5 +109,12 @@ public class HospitalRepService
             .Select(r => r.HospitalId)
             .FirstOrDefaultAsync();
     }
+
+    public async Task<HospitalRep?> GetRepByIdAsync(string userId)
+        {
+            return await _dbContext.HospitalRepresentatives
+                .AsNoTracking()
+                .FirstOrDefaultAsync(h => h.UserId == userId);
+        }
 
 }

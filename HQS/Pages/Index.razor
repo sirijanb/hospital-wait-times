@@ -7,13 +7,13 @@
 @inject IJSRuntime JS
 
 
-<h1 class="mb-3">Hospital Queue & Wait Time Tracking Dashboard</h1>
-
+<h2 class="mb-3">Control Panel</h2>
+<hr />
 <p class="lead">
     Transparent emergency wait times to help patients make informed decisions.
 </p>
 
-<hr />
+
 
 <!-- ================= ABOUT ================= -->
 <section class="mb-5">
@@ -57,7 +57,7 @@
 
                                 <!-- Name + Open Hours -->
                                 <div class="d-flex justify-content-between align-items-start">
-                                    <h5 class="card-title mb-1">@hospital.Name</h5>
+                                    <h5 class="card-title mb-1">@hospital.Name.Truncate(30)</h5>
 
                                     <span class="badge @GetOpenHoursBadgeClass(hospital.OpenHours)">
                                         @hospital.OpenHours
@@ -134,8 +134,9 @@
     private List<Hospital> _hospitals = new();
     private bool _loading = true;
     private int _currentPage = 1;
-    private int _pageSize = 6; // cards per page
-
+    private int _pageSize = 3; // cards per page
+    private double userLat = 43.7769588;
+    private double userLng = -79.7388075;
     private int TotalPages =>
     (_hospitals.Count + _pageSize - 1) / _pageSize;
 
@@ -147,16 +148,22 @@
 
     protected override async Task OnInitializedAsync()
     {
-        _hospitals = await HospitalService.GetAllHospitalsAsync();//GetPublicHospitalsAsync();
+        @* _hospitals = await HospitalService.GetAllHospitalsAsync();//GetPublicHospitalsAsync(); *@
+        _hospitals = (await HospitalService.GetAllHospitalsAsync())
+        .OrderBy(h => h.Name, StringComparer.OrdinalIgnoreCase)
+        .ToList();
         _loading = false;
     }
-    
+
     private string GetServiceClass(ServiceType service) => service switch
     {
         ServiceType.Emergency => "service-emergency",
         ServiceType.UPCC => "service-upcc",
         ServiceType.Pediatrics => "service-pediatrics",
         ServiceType.Trauma => "service-trauma",
+        ServiceType.Cardiology => "service-cardiology",
+        ServiceType.CareHome => "service-carehome",
+        ServiceType.Rehab => "service-rehab",
         _ => "service-default"
     };
     string GetBedAvailabilityClass(Hospital h)
@@ -191,9 +198,10 @@
         if (h.Latitude == null || h.Longitude == null)
             return;
 
-        var url = $"https://www.google.com/maps/dir/?api=1&destination={h.Latitude},{h.Longitude}";
+        @* var url = $"https://www.google.com/maps/dir/?api=1&destination={h.Latitude},{h.Longitude}"; *@
+        var url = $"https://www.google.com/maps/dir/?api=1&origin={userLat},{userLng}&destination={h.Latitude},{h.Longitude}";
         @* Navigation.NavigateTo(url, true); // true = open new tab *@
-         await JS.InvokeVoidAsync("window.open", url, "_blank");
+        await JS.InvokeVoidAsync("window.open", url, "_blank");
     }
     async Task OpenWebsite(Hospital h)
     {

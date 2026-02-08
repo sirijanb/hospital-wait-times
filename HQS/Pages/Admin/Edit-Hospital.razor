@@ -7,6 +7,7 @@
 @attribute [Authorize(Roles = "MasterAdmin")]
 
 <h3>Edit Hospital</h3>
+<hr />
 
 @if (_hospital == null)
 {
@@ -25,93 +26,139 @@ else
                     <div class="card-body">
                         <div class="mb-3">
                             <label class="form-label">Hospital Name</label>
+                            <span class="text-danger-required">*</span>
                             <InputText class="form-control" @bind-Value="_hospital.Name" />
+                            <ValidationMessage For="@(() => _hospital.Name)" class="text-danger" />
                         </div>
 
                         <div class="mb-3">
                             <label class="form-label">Address</label>
+                            <span class="text-danger-required">*</span>
                             <InputText class="form-control" @bind-Value="_hospital.Address" />
+                            <ValidationMessage For="@(() => _hospital.Name)" class="text-danger" />
                         </div>
 
                         <div class="mb-3">
                             <label class="form-label">Postal Code</label>
+                            <span class="text-danger-required">*</span>
                             <InputText class="form-control" @bind-Value="_hospital.PostalCode" />
+                            <ValidationMessage For="@(() => _hospital.PostalCode)" class="text-danger" />
                         </div>
 
                         <div class="mb-3">
-                            <label class="form-label">Open Hours</label>
+                            <label class="form-label">Open Hours</label><span class="text-danger-required">*</span>
                             <InputText class="form-control" @bind-Value="_hospital.OpenHours" />
-                        </div>
-
-                        <div class="row">
-                            <div class="col">
-                                <label class="form-label">Total Beds</label>
-                                <InputNumber class="form-control" @bind-Value="_hospital.TotalBeds" />
-                            </div>
+                            <ValidationMessage For="@(() => _hospital.OpenHours)" class="text-danger" />
                         </div>
 
                         <div class="mb-3">
-                            <label class="form-label fw-bold">Services Offered</label>
+                            <label class="form-label">Phone</label>
+                            <InputText class="form-control" @bind-Value="_hospital.Phone" maxlength="10" />
+                            <ValidationMessage For="@(() => _hospital.Phone)" class="text-danger" />
+                        </div>
 
-                            <div class="d-flex flex-wrap gap-3">
-                                @foreach (var service in Enum.GetValues<ServiceType>())
-                                {
-                                    <div class="form-check">
-                                        <input class="form-check-input" type="checkbox"
-                                            checked="@_hospital.ServicesOffered.Contains(service)"
-                                            @onchange="e => OnServiceToggle(service, (bool)e.Value!)" />
+                        <div class="mb-3">
+                            <label class="form-label">Website</label>
+                            <InputText class="form-control" @bind-Value="_hospital.Website" />
+                        </div>
 
-                                        <label class="form-check-label">
-                                            @service
-                                        </label>
-                                    </div>
-                                }
-                            </div>
+
+                        <div class="mb-3">
+                            <label class="form-label">Total Beds</label>
+                            <InputNumber class="form-control" @bind-Value="_hospital.TotalBeds" />
                         </div>
 
                     </div>
                 </div>
             </div>
 
+            <!-- IMAGE SELECTOR -->
             <div class="col-md-4">
-                <div class="card">
+                <div class="card mb-4">
                     <div class="card-header fw-bold">Hospital Image</div>
                     <div class="card-body text-center">
-                        @if (!string.IsNullOrWhiteSpace(_hospital.ImagePath))
+                        @if (!string.IsNullOrEmpty(_imagePreview))
                         {
-                            <img src="@_hospital.ImagePath" class="img-thumbnail mb-2" />
+                            <img src="@_imagePreview" class="img-thumbnail w-75 mb-2" />
+                        }
+                        else if (!string.IsNullOrWhiteSpace(_hospital.ImagePath))
+                        {
+                            <img src="@_hospital.ImagePath" class="img-thumbnail w-75 mb-2" />
                         }
                         else
                         {
-                            <p class="text-muted fst-italic">
-                                No image uploaded
-                            </p>
+                            <p class="text-muted fst-italic">No image uploaded</p>
                         }
-
                         <InputFile OnChange="OnImageSelected" />
-
-                        @if (!string.IsNullOrEmpty(_imagePreview))
-                        {
-                            <img src="@_imagePreview" class="img-thumbnail mt-2" />
-                        }
                     </div>
                 </div>
+
+                <div class="card mb-4">
+                    <div class="card-header fw-bold">
+                        Services Offered<span class="text-danger-required">*</span>
+                    </div>
+                    <div class="card-body">
+                        <div class="d-flex flex-wrap gap-3">
+                            @foreach (var service in Enum.GetValues<ServiceType>())
+                            {
+                                <div class="form-check">
+                                    <input class="form-check-input" type="checkbox"
+                                           checked="@_hospital.ServicesOffered.Contains(service)"
+                                           @onchange="e => OnServiceToggle(service, (bool)e.Value!)" />
+
+                                    <label class="form-check-label">
+                                        @service
+                                    </label>
+                                </div>
+                            }
+                        </div>
+                        <ValidationMessage For="@(() => _hospital.ServicesOffered)" class="text-danger" />
+                    </div>
+                </div>
+
+                <div class="card mb-4">
+                    <div class="card-header fw-bold">Hospital Coordinates</div>
+                    <div class="card-body">
+                        <div class="row">
+                            <div class="col-6">
+                                <label class="form-label">Latitude</label><span class="text-danger-required">*</span>
+                                <InputNumber class="form-control" @bind-Value="_hospital.Latitude" />
+                                <ValidationMessage For="@(() => _hospital.Latitude)" class="text-danger" />
+                            </div>
+                            <div class="col-6">
+                                <label class="form-label">Longitude</label><span class="text-danger-required">*</span>
+                                <InputNumber class="form-control" @bind-Value="_hospital.Longitude" />
+                                <ValidationMessage For="@(() => _hospital.Longitude)" class="text-danger" />
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
             </div>
+
         </div>
 
-        <div class="mt-4">
+        <div class="mt-2">
             <button class="btn btn-success">Update</button>
             <button type="button" class="btn btn-outline-secondary ms-2" @onclick="Cancel">
                 Cancel
             </button>
         </div>
+
+        @if (!string.IsNullOrWhiteSpace(_success))
+        {
+            <p class="text-success mt-2">@_success</p>
+        }
+
     </EditForm>
 
 }
 @code {
     [Parameter] public Guid HospitalId { get; set; }
+    private string? _success;
 
-    private Hospital? _hospital = new() {
+    private Hospital? _hospital = new()
+    {
         ServicesOffered = new List<ServiceType>()
     };
     private IBrowserFile? _newImage;
@@ -123,6 +170,7 @@ else
 
         if (_hospital != null)
         {
+            ReFormatPhoneNumberToDigits();
             _hospital.ServicesOffered ??= new List<ServiceType>();
         }
     }
@@ -142,12 +190,13 @@ else
         if (_hospital == null) return;
 
         await HospitalService.UpdateAsync(_hospital, _newImage);
-        Nav.NavigateTo("/admin/hospitals");
+        _success = "Added successfully!";
+        Nav.NavigateTo("/admin/view-hospitals");
     }
 
     private void Cancel()
     {
-        Nav.NavigateTo("/admin/hospitals");
+        Nav.NavigateTo("/admin/view-hospitals");
     }
 
     void OnServiceToggle(ServiceType service, bool isChecked)
@@ -166,5 +215,23 @@ else
         }
     }
 
+    void ReFormatPhoneNumberToDigits()
+    {
+        if (_hospital != null)
+        {
+            // Remove all non-digit characters
+            string digitsOnly = new string(_hospital.Phone?.Where(char.IsDigit).ToArray() ?? Array.Empty<char>());
 
+            // If it was saved with the +1 prefix, it will have 11 digits (15142888201)
+            // We skip the '1' to get back to the 10-digit local format
+            if (digitsOnly.Length == 11 && digitsOnly.StartsWith("1"))
+            {
+                _hospital.Phone = digitsOnly.Substring(1);
+            }
+            else
+            {
+                _hospital.Phone = digitsOnly;
+            }
+        }
+    }
 }

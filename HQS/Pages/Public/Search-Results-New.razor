@@ -101,6 +101,18 @@
 
                         @* <div class=""> *@
                         <div class="results-2-card-header">
+                            <div class="services">
+                                @foreach (var s in h.ServicesOffered)
+                                {
+                                    <span class="service-badge @GetServiceClass(s)">
+                                        @s
+                                    </span>
+                                }
+                            </div>
+                            <span class="results-2-hospital-eta"><strong>⏳ @FormatWaitTime(h.WaitTimeMinutes)</strong></span>
+                        </div>
+                        <hr />
+                        <div class="results-2-card-header">
                             <h5 class="results-hospital-title">@h.Name</h5>
                             @* @if (h.DistanceKm > 0)
                             {
@@ -117,28 +129,34 @@
                             </span> *@
                             @if (h.DistanceKm > 0)
                             {
-                                <span>📍@Math.Round(h.DistanceKm)km from you</span>
+                                @* <span class="oi oi-map-marker me-2"> </span> *@
+
+                                <span>📍 @Math.Round(h.DistanceKm)km from you</span>
                             }
+
                             @* <div>⏳ Waiting Time: <strong>@FormatWaitTime(h.WaitTimeMinutes)</strong></div>
-                            <div>👥 Patients in Queue: <strong>@h.QueueLength</strong></div>
+                            <div>👥 Patients in Queue: <strong>@h.QueueLength •</strong></div>
                             <div>🛏 Beds Available: <strong>@h.AvailableBeds/@h.TotalBeds</strong></div> *@
-                            <div>⏳ Waiting Time: <strong>@FormatWaitTime(h.WaitTimeMinutes)</strong> • 👥 Patients in Queue:
-                                <strong>@h.QueueLength</strong> • 🛏 Beds Available:
-                                <strong>@h.AvailableBeds/@h.TotalBeds</strong>
+                            <div>
+                                @* <span class="oi oi-people"></span>  *@
+                                👥 Patients waiting to be seen:
+                                <strong>@h.QueueLength</strong>
+                                <br />
+                                🛏 Beds Available: <strong>@h.AvailableBeds/@h.TotalBeds</strong>
                             </div>
                             @* • 👤 All Ages *@
                         </div>
                         @*badge open-hours *@
 
 
-                        <div class="services">
+                        @* <div class="services">
                             @foreach (var s in h.ServicesOffered)
                             {
                                 <span class="service-badge @GetServiceClass(s)">
                                     @s
                                 </span>
                             }
-                        </div>
+                        </div> *@
 
                         <div class="results-2-card-actions">
                             <button class="results-2-btn-light" @onclick="() => OpenDirections(h)"
@@ -213,6 +231,9 @@
     private const int PageSize = 5;
     private int _currentIndex = 0;
 
+    private double userLat = 43.7769588;
+    private double userLng = -79.7388075;
+
     private bool CanLoadMore => _currentIndex < _hospitals?.Count;
     private Guid? _selectedHospitalId;
     private Guid? _expandedHospitalId;
@@ -237,7 +258,7 @@
     {
         _hospitals = await hs.GetAllHospitalsAsync();
         @* _hospitals = await HospitalLocateService.GetNearbyHospitalsAsync(Lat, Lon, _radiusInKm * 1000, "Canada"); *@
-        if (_hospitals is not null && _hospitals.Count > 0)
+        @* if (_hospitals is not null && _hospitals.Count > 0)
         {
             foreach (var h in _hospitals)
             {
@@ -262,7 +283,7 @@
         else
         {
             _error = "Unable to fetch data. Please try again.";
-        }
+        } *@ //initMap should go first, failing on Azure
 
         await InitSignalRAsync(); // for signalR
 
@@ -303,9 +324,41 @@
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
-        if (!firstRender)
-            return;
-        await JS.InvokeVoidAsync("mapInterop.initMap", Lat, Lon);
+        @* if (!firstRender)
+            return; *@
+        if (firstRender)
+        {
+            Console.WriteLine($"Got LAT: {Lat} LON: {Lon} aLat: {AddressState.Lat} aLon: {AddressState.Lon}");
+            await JS.InvokeVoidAsync("mapInterop.initMap", Lat, Lon);
+
+            if (_hospitals is not null && _hospitals.Count > 0)
+            {
+                foreach (var h in _hospitals)
+                {
+                    h.DistanceKm = GeoUtils.DistanceKm(
+                    Lat,
+                    Lon,
+                    h.Latitude ?? 0.0,
+                    h.Longitude ?? 0.0
+                    );
+                }
+
+                // nearest first
+                _hospitals = _hospitals
+                .OrderBy(h => h.DistanceKm)
+                .ToList();
+
+                _visibleHospitals.Clear();
+                _currentIndex = 0;
+
+                await LoadNextBatch();
+                await InvokeAsync(StateHasChanged); //doing this as first load, doesn't show list
+            }
+            else
+            {
+                _error = "Unable to fetch data. Please try again.";
+            }
+        }
         @* if (_hospitals is not null)
         {
             await JS.InvokeVoidAsync(
@@ -346,6 +399,9 @@
         ServiceType.UPCC => "service-upcc",
         ServiceType.Pediatrics => "service-pediatrics",
         ServiceType.Trauma => "service-trauma",
+        ServiceType.Cardiology => "service-cardiology",
+        ServiceType.CareHome => "service-carehome",
+        ServiceType.Rehab => "service-rehab",
         _ => "service-default"
     };
 
@@ -378,11 +434,11 @@
     {
         try
         {
-            var coords = await JS.InvokeAsync<GeoPosition>("locationInterop.getCurrentLocation");
+            //var coords = await JS.InvokeAsync<GeoPosition>("locationInterop.getCurrentLocation");
 
             AddressState.Address = string.Empty;
-            AddressState.Lat = coords.Lat;
-            AddressState.Lon = coords.Lng;
+            AddressState.Lat = userLat;//coords.Lat;
+            AddressState.Lon = userLng;//coords.Lng;
 
             _suggestions.Clear();
             _hospitals?.Clear();
@@ -480,7 +536,9 @@
         if (h.Latitude == null || h.Longitude == null)
             return;
 
-        var url = $"https://www.google.com/maps/dir/?api=1&destination={h.Latitude},{h.Longitude}";
+        @* var url = $"https://www.google.com/maps/dir/?api=1&destination={h.Latitude},{h.Longitude}"; *@
+        var url = $"https://www.google.com/maps/dir/?api=1&origin={userLat},{userLng}&destination={h.Latitude},{h.Longitude}";
+
         @* Navigation.NavigateTo(url, true); // true = open new tab *@
         await JS.InvokeVoidAsync("window.open", url, "_blank");
     }
@@ -506,13 +564,13 @@
         {
             if (m > 0)
             {
-                return $"{h}hr {m}min";
+                return $"{h}h {m}m";
             }
-            return $"{h}hr";
+            return $"{h}h";
         }
         else
         {
-            return $"{m}min";
+            return $"{m}m";
         }
         @* return h > 0 ? $"{h}h {m} min" : $"{m} min"; *@
     }

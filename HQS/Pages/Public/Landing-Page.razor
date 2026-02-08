@@ -76,6 +76,9 @@
     private List<AddressSuggestion> _suggestions = new();
     private CancellationTokenSource? _debounceCts;
 
+    private double userLat = 43.7769588;
+    private double userLng = -79.7388075;
+
     private string? _error;
     @* private async Task OnAddressInput(ChangeEventArgs e)
     {
@@ -149,17 +152,21 @@
         );
     }
 
-    private async Task DetectLocation()
+    private void DetectLocation()
     {
         try
         {
-            var coords = await JS.InvokeAsync<GeoPosition>("locationInterop.getCurrentLocation");
+            @* var coords = await JS.InvokeAsync<GeoPosition>("locationInterop.getCurrentLocation");
 
             Navigation.NavigateTo(
             $"/search-results-map?lat={coords.Lat}&lon={coords.Lng}"
+            ); *@
+
+            Navigation.NavigateTo(
+            $"/search-results-map?lat={userLat}&lon={userLng}"
             );
         }
-        catch(Exception ex)
+        catch (Exception ex)
         {
             _error = $"Unable to detect location. Please enter address manually. {ex.Message}";
         }
