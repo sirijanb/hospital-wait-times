@@ -12,7 +12,8 @@
 
 @attribute [Authorize(Roles = "HospitalRep")]
 
-<h3>Hospital Information</h3>
+<h3>Dashboard</h3>
+<hr />
 
 @if (_loading)
 {
@@ -85,13 +86,13 @@ else
             <div class="col-md-6">
                 <div class="card h-100 shadow-sm">
                     <div class="card-header fw-bold">
-                        Update Live Status
+                        Update Status
                     </div>
 
                     <div class="card-body">
                         <EditForm Model="_model" OnValidSubmit="SaveAsync">
                             <DataAnnotationsValidator />
-                            <ValidationSummary />
+                            @* <ValidationSummary /> *@
 
                             <div class="mb-3">
                                 <label class="form-label">Available Beds</label>
@@ -99,19 +100,22 @@ else
                                 <small class="text-muted">
                                     Max: @_hospital.TotalBeds
                                 </small>
+                                <ValidationMessage For="@(() => _model.AvailableBeds)" class="text-danger" />
                             </div>
 
                             <div class="mb-3">
                                 <label class="form-label">Queue Length</label>
                                 <InputNumber class="form-control" @bind-Value="_model.QueueLength" />
+                                <ValidationMessage For="@(() => _model.QueueLength)" class="text-danger" />
                             </div>
 
                             <div class="mb-3">
                                 <label class="form-label">Wait Time (minutes)</label>
                                 <InputNumber class="form-control" @bind-Value="_model.WaitTimeMinutes" />
+                                <ValidationMessage For="@(() => _model.WaitTimeMinutes)" class="text-danger" />
                             </div>
-
-                            <button class="btn btn-success" type="submit" disabled="@_saving">
+                            @* disabled="@_saving" *@
+                            <button class="btn btn-success" type="submit">
                                 Save Updates
                             </button>
                         </EditForm>
@@ -119,24 +123,94 @@ else
                         {
                             <p class="text-success mt-2">@_success</p>
                         }
+                        @if (!string.IsNullOrWhiteSpace(_error))
+                        {
+                            <p class="mt-2"style="color:red">@_error</p>
+                        }
                     </div>
                 </div>
             </div>
 
         </div>
+@if (_hospitalRep == null)
+{
+    <p class="text-danger">Hospital not found.</p>
+}
+else
+{
+        <!-- ROW 2: FULL WIDTH REP INFO -->
+    <div class="row g-4 mt-1">
+        <div class="col-12">
+            <div class="card shadow-sm">
+                <div class="card-header fw-bold">
+                    Personal Information
+                </div>
+
+                <div class="card-body">
+                    <table class="table table-sm table-borderless mb-0">
+                        <tr>
+                            <th style="width:200px;">Name</th>
+                            <td>@_hospitalRep.Name</td>
+                        </tr>
+                        <tr>
+                            <th>Email</th>
+                            <td>@_hospitalRep.Email</td>
+                        </tr>
+                        <tr>
+                            <th>Phone</th>
+                            <td>@FormatPhoneNumberWithCanadianCode(_hospitalRep.ContactNumber)</td>
+                        </tr>
+                        <tr>
+                            <th>Member Since</th>
+                            <td>@_hospitalRep.CreatedAt
+                                <span class="text-muted">
+                                    (@GetTimeAgo(_hospitalRep.CreatedAt))
+                                </span>
+                            </td>
+                            
+                        </tr>
+                        <tr>
+                            <th>Role</th>
+                            <td>Hospital Representative</td>
+                        </tr>
+                        <tr>
+                            <th>Authorized For</th>
+                            <td>@_hospital.Name, @_hospital.Address</td>
+                        </tr>
+                        @* <tr>
+                            <th>Account Status</th>
+                            <td>
+                                @if (_hospitalRep.IsApproved)
+                                {
+                                    <span class="badge bg-success">Approved</span>
+                                }
+                                else
+                                {
+                                    <span class="badge bg-warning text-dark">Pending</span>
+                                }
+                            </td>
+                        </tr> *@
+                        @* <tr>
+                            <th>Last Updated</th>
+                            <td>@_hospitalRep.LastUpdated?.ToString("dd MMM yyyy, hh:mm tt")</td>
+                        </tr> *@
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+}
     </div>
 }
 
-@if (!string.IsNullOrWhiteSpace(_error))
-{
-    <p style="color:red">@_error</p>
-}
+
 
 @code {
     private Hospital? _hospital;
+    private HospitalRep? _hospitalRep;
     private UpdateHospitalStatusModel _model = new();
     private bool _loading = true;
-    private bool _saving;
+    @* private bool _saving; *@
     private string? _success;
     private string? _error;
     protected override async Task OnInitializedAsync()
@@ -149,6 +223,14 @@ else
             Navigation.NavigateTo("/login");
             return;
         }
+
+        _hospitalRep = await HospitalRepService.GetRepByIdAsync(userId);
+        if(_hospitalRep == null)
+            return;
+        else
+        {
+
+        }    
 
         var hospitalId = await HospitalRepService.GetHospitalIdForUserAsync(userId);
         if (hospitalId == null)
@@ -169,19 +251,48 @@ else
 
     private async Task SaveAsync()
     {
-        _saving = true;
+        @* _saving = true; *@
         _success = null;
         try
         {
             await HospitalService.UpdateOperationalInfoAsync(_model);
 
-            _model = new();//reset form
+            @* _model = new();//reset form *@
+            _error = string.Empty;
             _success = "Updated successfully!";
-            _saving = false;
+            @* _saving = false; *@
         }
         catch (Exception ex)
         {
             _error = ex.Message;
         }
     }
+
+    string FormatPhoneNumberWithCanadianCode(string ContactNumber)
+    {
+        if (!string.IsNullOrWhiteSpace(ContactNumber) && ContactNumber.Length == 10)
+        {
+            // Converts 5142888201 to +1-(514)-288-8201
+            ContactNumber = $"+1-({ContactNumber.Substring(0, 3)})-{ContactNumber.Substring(3, 3)}-{ContactNumber.Substring(6)}";
+            return ContactNumber;
+        }
+        return "-";
+    }
+
+    private string GetTimeAgo(DateTime date)
+    {
+        var span = DateTime.UtcNow - date;
+
+        if (span.TotalDays >= 365)
+            return $"{(int)(span.TotalDays / 365)} year(s) ago";
+
+        if (span.TotalDays >= 30)
+            return $"{(int)(span.TotalDays / 30)} month(s) ago";
+
+        if (span.TotalDays >= 1)
+            return $"{(int)span.TotalDays} day(s) ago";
+
+        return "today";
+    }
+
 }

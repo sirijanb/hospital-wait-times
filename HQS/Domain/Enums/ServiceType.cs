@@ -7,5 +7,7 @@ public enum ServiceType
     Pediatrics = 3,
     Trauma = 4,
     Cardiology = 5,
-    General = 6
+    General = 6,
+    CareHome = 7,
+    Rehab = 8
 }

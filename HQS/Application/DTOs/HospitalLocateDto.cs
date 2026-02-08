@@ -9,7 +9,7 @@ namespace HQS.Infrastructure.DTOs
         public string Address { get; set; } = string.Empty;
         public string? PostalCode { get; set; }
         public List<ServiceType> ServicesOffered { get; set; } = new();
-        public string? OpenHours { get; set; } //implement
+        public string OpenHours { get; set; } = string.Empty;//implement
         public int TotalBeds { get; set; }//NR->remove //Not available in API
         public int AvailableBeds { get; set; }//NR->remove //Not available in API
         public string? Phone { get; set; }

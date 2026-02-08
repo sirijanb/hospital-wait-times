@@ -1,0 +1,188 @@
+@page "/admin/add-hospital"
+@using HQS.Domain.Entities
+@using HQS.Domain.Enums
+@using HQS.Infrastructure.Data
+@using HQS.Infrastructure.Services
+@using HQS.Shared
+@inject HospitalService HospitalService
+@inject NavigationManager Navigation
+@attribute [Authorize(Roles = "MasterAdmin")]
+
+<h3>Add Hospital</h3>
+<hr />
+<EditForm Model="_newHospital" OnValidSubmit="AddHospitalAsync">
+    <DataAnnotationsValidator />
+    <div class="row">
+        <div class="col-md-8">
+            <div class="card mb-3">
+                <div class="card-header fw-bold">Hospital Details</div>
+                <div class="card-body">
+
+                    <div class="mb-3">
+                        <label class="form-label">Hospital Name</label><span class="text-danger-required">*</span>
+                        <InputText class="form-control" @bind-Value="_newHospital.Name" />
+                        <ValidationMessage For="@(() => _newHospital.Name)" class="text-danger" />
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">Address</label><span class="text-danger-required">*</span>
+                        <InputText class="form-control" @bind-Value="_newHospital.Address" />
+                        <ValidationMessage For="@(() => _newHospital.Address)" class="text-danger" />
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">Postal Code</label><span class="text-danger-required">*</span>
+                        <InputText class="form-control" @bind-Value="_newHospital.PostalCode" />
+                        <ValidationMessage For="@(() => _newHospital.PostalCode)" class="text-danger" />
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">Open Hours</label><span class="text-danger-required">*</span>
+                        <InputText class="form-control" @bind-Value="_newHospital.OpenHours" />
+                        <ValidationMessage For="@(() => _newHospital.OpenHours)" class="text-danger" />
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">Phone</label>
+                        <InputText class="form-control" @bind-Value="_newHospital.Phone" maxlength="10"/>
+                        <ValidationMessage For="@(() => _newHospital.Phone)" class="text-danger" />
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">Website</label>
+                        <InputText class="form-control" @bind-Value="_newHospital.Website" />
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">Total Beds</label>
+                        <InputNumber class="form-control" @bind-Value="_newHospital.TotalBeds" />
+                    </div>
+                </div>
+            </div>
+        </div>
+        <!-- IMAGE SELECTOR -->
+        <div class="col-md-4">
+            <div class="card mb-4">
+                <div class="card-header fw-bold">Hospital Image</div>
+                <div class="card-body text-center">
+                    @if(string.IsNullOrEmpty(_imagePreview))
+                    {
+                        <img src="/hospital-images/hospital-placeholder.png" class="img-thumbnail w-75 mb-2" />
+                    }
+                    else
+                    {
+                        <img src="@_imagePreview" class="img-thumbnail w-75 mb-2" />
+                    }
+                    <InputFile OnChange="OnImageSelected" />
+                </div>
+            </div>
+
+            <div class="card mb-4">
+                <div class="card-header fw-bold">Services Offered<span class="text-danger-required">*</span>
+                </div>
+                <div class="card-body">
+                    <div class="services-checkboxes d-flex flex-wrap gap-3">
+                            @foreach (var service in Enum.GetValues<ServiceType>())
+                            {
+                                <div class="form-check">
+                                    <input type="checkbox" class="form-check-input"
+                                        checked="@_newHospital.ServicesOffered.Contains(service)"
+                                        @onchange="e => OnServiceToggle(service, e.Value)" />
+
+                                        <label class="form-check-label">
+                                            @service
+                                        </label>
+                                </div>
+                            }
+                        </div>
+                        <ValidationMessage For="@(() => _newHospital.ServicesOffered)" class="text-danger" />
+                </div>
+
+            </div>
+
+            <div class="card mb-4">
+                <div class="card-header fw-bold">Hospital Coordinates</div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-6">
+                            <label class="form-label">Latitude</label><span class="text-danger-required">*</span>
+                            <InputNumber class="form-control" @bind-Value="_newHospital.Latitude" />
+                            <ValidationMessage For="@(() => _newHospital.Latitude)" class="text-danger" />
+                        </div>
+                        <div class="col-6">
+                            <label class="form-label">Longitude</label><span class="text-danger-required">*</span>
+                            <InputNumber class="form-control" @bind-Value="_newHospital.Longitude" />
+                            <ValidationMessage For="@(() => _newHospital.Longitude)" class="text-danger" />
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+    <div class="mt-2">
+        <button class="btn btn-success" type="submit">
+            Add
+        </button>
+    </div>
+     @if (!string.IsNullOrWhiteSpace(_success))
+    {
+        <p class="text-success mt-2">@_success</p>
+    }
+</EditForm>
+
+@code {
+    private Hospital _newHospital = new()
+    {
+        ServicesOffered = new List<ServiceType>()
+    };
+
+    private async Task AddHospitalAsync()
+    {
+        FormatPhoneNumberWithCanadianCode();
+        await HospitalService.AddAsync(_newHospital, _imageFile);
+        _newHospital = new Hospital(); // reset form
+        _imagePreview = null; // reset _imagePreview
+        _success = "Added successfully!";
+        @* await LoadHospitalsAsync(); *@
+    }
+
+    private IBrowserFile? _imageFile;
+    private string? _imagePreview;
+    private string? _success;
+    private async Task OnImageSelected(InputFileChangeEventArgs e)
+    {
+        _imageFile = e.File;
+
+        using var stream = _imageFile.OpenReadStream(maxAllowedSize: 5_000_000);
+        var buffer = new byte[_imageFile.Size];
+        await stream.ReadAsync(buffer);
+        _imagePreview = $"data:{_imageFile.ContentType};base64,{Convert.ToBase64String(buffer)}";
+    }
+
+    private void OnServiceToggle(ServiceType service, object? value)
+    {
+        var isChecked = value is bool b && b;
+
+        if (isChecked)
+        {
+            if (!_newHospital.ServicesOffered.Contains(service))
+                _newHospital.ServicesOffered.Add(service);
+        }
+        else
+        {
+            _newHospital.ServicesOffered.Remove(service);
+        }
+    }
+
+    void FormatPhoneNumberWithCanadianCode()
+    {
+        if (!string.IsNullOrWhiteSpace(_newHospital.Phone) && _newHospital.Phone.Length == 10)
+        {
+            // Converts 5142888201 to +1-(514)-288-8201
+            _newHospital.Phone = $"+1-({_newHospital.Phone.Substring(0, 3)})-{_newHospital.Phone.Substring(3, 3)}-{_newHospital.Phone.Substring(6)}";
+        }
+    }
+    
+}

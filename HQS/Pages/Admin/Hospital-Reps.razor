@@ -4,14 +4,14 @@
 @attribute [Authorize(Roles = "MasterAdmin")]
 
 <h3>Hospital Representatives</h3>
-
+<hr />
 @if (_reps == null)
 {
     <p>Loading...</p>
 }
 else
 {
-    <table class="table">
+    @* <table class="table">
         <thead>
             <tr>
                 <th>Name</th>
@@ -48,15 +48,123 @@ else
             </tr>
         }
         </tbody>
-    </table>
+    </table> *@
+
+    <div class="card shadow-sm">
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-hover align-middle mb-0">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Name</th>
+                            <th>Email</th>
+                            <th>Hospital</th>
+                            <th>Status</th>
+                            <th class="text-end">Actions / Remarks</th>
+                        </tr>
+                    </thead>
+
+                    <tbody>
+                        @if (_reps == null || !_reps.Any())
+                        {
+                            <tr>
+                                <td colspan="5" class="text-center text-muted py-4">
+                                    No hospital representatives found
+                                </td>
+                            </tr>
+                        }
+                        else
+                        {
+                            @foreach (var rep in PagedReps)
+                            {
+                                <tr>
+                                    <td class="fw-medium">@rep.Name</td>
+
+                                    <td class="text-muted">@rep.Email</td>
+
+                                    <td>
+                                        @rep.Hospital?.Name
+                                        @* <span class="text-muted">—</span> *@
+                                    </td>
+
+                                    <td>
+                                        @if (rep.IsApproved)
+                                        {
+                                            <span class="badge bg-success">
+                                                Approved
+                                            </span>
+                                        }
+                                        else
+                                        {
+                                            <span class="badge bg-warning text-dark">
+                                                Pending
+                                            </span>
+                                        }
+                                    </td>
+
+                                    <td class="text-end">
+                                        @if (!rep.IsApproved)
+                                        {
+                                            <button class="btn btn-success btn-sm" @onclick="() => Approve(rep.Id)">
+                                                Approve
+                                            </button>
+
+                                            <button class="btn btn-outline-danger btn-sm ms-3" @onclick="() => Reject(rep.Id)">
+                                                Reject
+                                            </button>
+                                        }
+                                        else
+                                        {
+                                            <span class="text-muted small">
+                                                Approved & Authorized
+                                            </span>
+                                        }
+                                    </td>
+                                </tr>
+                            }
+                        }
+                    </tbody>
+                </table>
+            </div>
+
+        </div>
+    </div>
+    <br />
+    <div class="pagination-controls d-flex justify-content-center align-items-center gap-2 mt-1 mb-2">
+
+        <button class="btn btn-outline-secondary" disabled="@(_currentPage == 1)"
+                @onclick="() => ChangePage(_currentPage - 1)">
+            Prev
+        </button>
+
+        <span>
+            Page @_currentPage of @TotalPages
+        </span>
+
+        <button class="btn btn-outline-secondary" disabled="@(_currentPage == TotalPages)"
+                @onclick="() => ChangePage(_currentPage + 1)">
+            Next
+        </button>
+
+    </div>
 }
 
 @code {
-    private List<HospitalRep>? _reps;
+    private List<HospitalRep> _reps = new();
+    private int _currentPage = 1;
+    private int _pageSize = 15; // cards per page
+    private int TotalPages =>
+    (_reps.Count + _pageSize - 1) / _pageSize;
+
+    private IEnumerable<HospitalRep> PagedReps =>
+    _reps
+    .Skip((_currentPage - 1) * _pageSize)
+    .Take(_pageSize);
 
     protected override async Task OnInitializedAsync()
     {
         _reps = await RepService.GetAllAsync();
+        @* _reps = _reps.OrderBy(r => r.IsApproved).ToList(); *@
     }
 
     private async Task Approve(Guid repId)
@@ -69,5 +177,10 @@ else
     {
         await RepService.RejectAsync(repId);
         _reps = await RepService.GetAllAsync();
+    }
+
+    private void ChangePage(int page)
+    {
+        _currentPage = page;
     }
 }
