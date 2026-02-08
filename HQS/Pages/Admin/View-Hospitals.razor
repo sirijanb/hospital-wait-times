@@ -1,4 +1,4 @@
-@page "/admin/hospitals"
+@page "/admin/view-hospitals"
 @using HQS.Domain.Entities
 @using HQS.Domain.Enums
 @using HQS.Infrastructure.Data
@@ -8,79 +8,16 @@
 @inject NavigationManager Navigation
 @attribute [Authorize(Roles = "MasterAdmin")]
 
-<h3>Hospitals Management</h3>
-
-<hr />
-<InputFile OnChange="OnImageSelected" />
-
-@if (!string.IsNullOrEmpty(_imagePreview))
-{
-    <img src="@_imagePreview" style="max-width:200px;" />
-}
-
-<EditForm Model="_newHospital" OnValidSubmit="AddHospitalAsync">
-    <DataAnnotationsValidator />
-    <ValidationSummary />
-
-    <div class="mb-3">
-        <label class="form-label">Hospital Name</label>
-        <InputText class="form-control" @bind-Value="_newHospital.Name" />
-    </div>
-
-    <div class="mb-3">
-        <label class="form-label">Address</label>
-        <InputText class="form-control" @bind-Value="_newHospital.Address" />
-    </div>
-
-    <div class="mb-3">
-        <label class="form-label">Postal Code</label>
-        <InputText class="form-control" @bind-Value="_newHospital.PostalCode" />
-    </div>
-
-    <div class="mb-3">
-        <label class="form-label">Open Hours</label>
-        <InputText class="form-control" @bind-Value="_newHospital.OpenHours" />
-    </div>
-
-    <div class="mb-3">
-        <label class="form-label">Total Beds</label>
-        <InputNumber class="form-control" @bind-Value="_newHospital.TotalBeds" />
-    </div>
-
-    <!-- SERVICES -->
-    <div class="mb-3">
-        <label class="form-label">Services Offered</label>
-
-        <div class="services-checkboxes">
-            @foreach (var service in Enum.GetValues<ServiceType>())
-            {
-                <div class="form-check">
-                    <input type="checkbox" class="form-check-input"
-                        checked="@_newHospital.ServicesOffered.Contains(service)"
-                        @onchange="e => OnServiceToggle(service, e.Value)" />
-
-                    <label class="form-check-label">
-                        @service
-                    </label>
-                </div>
-            }
-        </div>
-    </div>
-
-    <button class="btn btn-success" type="submit">
-        Add Hospital
-    </button>
-</EditForm>
-
+<h3>Hospitals</h3>
 <hr />
 
 <!-- Hospital List -->
 <div class="row mt-3">
     @if (_Hospitals != null)
     {
-        foreach (var hospital in _Hospitals)
+        foreach (var hospital in PagedHospitals)
         {
-            <div class="col-md-6 col-lg-4 mb-4">
+            <div class="col-md-6 col-lg-4 mb-3">
                 <div class="card h-100 shadow-sm edit-hospital-card">
 
                     <!-- Thumbnail -->
@@ -91,7 +28,7 @@
 
                         <!-- Name + Open Hours -->
                         <div class="d-flex justify-content-between align-items-start">
-                            <h5 class="card-title mb-1">@hospital.Name</h5>
+                            <h5 class="card-title mb-1">@hospital.Name.Truncate(30)</h5>
 
                             <span class="badge @GetOpenHoursBadgeClass(hospital.OpenHours)">
                                 @hospital.OpenHours
@@ -114,14 +51,14 @@
                         <!-- Queue Info -->
                         <div class="small text-muted mb-3">
                             Queue: <strong>@hospital.QueueLength</strong> |
-                            Wait: <strong>@FormatWaitTime(hospital.WaitTimeMinutes)</strong>
+                            Waiting: <strong>@FormatWaitTime(hospital.WaitTimeMinutes)</strong>
                         </div>
 
                         <!-- Services -->
                         <div class="mb-3">
                             @foreach (var service in hospital.ServicesOffered)
                             {
-                                <span class="badge me-1 mb-1 @GetServiceBadgeClass(service.ToString())">
+                                <span class="badge me-1 mb-1 @GetServiceClass(service)">
                                     @service
                                 </span>
                             }
@@ -142,12 +79,40 @@
                 </div>
             </div>
         }
+        <div class="pagination-controls d-flex justify-content-center align-items-center gap-2 mt-1 mb-2">
+
+            <button class="btn btn-outline-secondary" disabled="@(_currentPage == 1)"
+                @onclick="() => ChangePage(_currentPage - 1)">
+                Prev
+            </button>
+
+            <span>
+                Page @_currentPage of @TotalPages
+            </span>
+
+            <button class="btn btn-outline-secondary" disabled="@(_currentPage == TotalPages)"
+                @onclick="() => ChangePage(_currentPage + 1)">
+                Next
+            </button>
+
+        </div>
     }
 </div>
 
 
 @code {
     private List<Hospital> _Hospitals = new();
+
+    private int _currentPage = 1;
+    private int _pageSize = 6; // cards per page
+    private int TotalPages =>
+    (_Hospitals.Count + _pageSize - 1) / _pageSize;
+
+    private IEnumerable<Hospital> PagedHospitals =>
+    _Hospitals
+    .Skip((_currentPage - 1) * _pageSize)
+    .Take(_pageSize);
+
     private Hospital _newHospital = new()
     {
         ServicesOffered = new List<ServiceType>()
@@ -163,51 +128,15 @@
         _Hospitals = await HospitalService.GetAllHospitalsAsync();
     }
 
-    private async Task AddHospitalAsync()
-    {
-        await HospitalService.AddAsync(_newHospital, _imageFile);
-        _newHospital = new Hospital(); // reset form
-        _imagePreview = null; // reset _imagePreview
-        await LoadHospitalsAsync();
-    }
-
     private async Task DeleteHospitalAsync(Guid id)
     {
         await HospitalService.DeleteAsync(id);
         await LoadHospitalsAsync();
     }
 
-    private IBrowserFile? _imageFile;
-    private string? _imagePreview;
-
-    private async Task OnImageSelected(InputFileChangeEventArgs e)
-    {
-        _imageFile = e.File;
-
-        using var stream = _imageFile.OpenReadStream(maxAllowedSize: 5_000_000);
-        var buffer = new byte[_imageFile.Size];
-        await stream.ReadAsync(buffer);
-        _imagePreview = $"data:{_imageFile.ContentType};base64,{Convert.ToBase64String(buffer)}";
-    }
-
     void EditHospital(Guid id)
     {
         Navigation.NavigateTo($"/admin/hospitals/edit/{id}");
-    }
-
-    private void OnServiceToggle(ServiceType service, object? value)
-    {
-        var isChecked = value is bool b && b;
-
-        if (isChecked)
-        {
-            if (!_newHospital.ServicesOffered.Contains(service))
-                _newHospital.ServicesOffered.Add(service);
-        }
-        else
-        {
-            _newHospital.ServicesOffered.Remove(service);
-        }
     }
 
     string GetBedAvailabilityClass(Hospital h)
@@ -228,21 +157,47 @@
         return "bg-info";
     }
 
-    string GetServiceBadgeClass(string service)
+    private string GetServiceClass(ServiceType service) => service switch
     {
-        return service switch
-        {
-            "Emergency" => "bg-danger",
-            "ICU" => "bg-warning text-dark",
-            "Pediatrics" => "bg-info",
-            "Cardiology" => "bg-primary",
-            _ => "bg-secondary"
-        };
-    }
+        ServiceType.Emergency => "service-emergency",
+        ServiceType.UPCC => "service-upcc",
+        ServiceType.Pediatrics => "service-pediatrics",
+        ServiceType.Trauma => "service-trauma",
+        ServiceType.Cardiology => "service-cardiology",
+        ServiceType.CareHome => "service-carehome",
+        ServiceType.Rehab => "service-rehab",
+        _ => "service-default"
+    };
+
     string FormatWaitTime(int minutes)
     {
         int h = minutes / 60;
         int m = minutes % 60;
-        return h > 0 ? $"{h}h {m} min" : $"{m} min";
+        if (h > 0)
+        {
+            if (m > 0)
+            {
+                return $"{h}h {m}m";
+            }
+            return $"{h}h";
+        }
+        else
+        {
+            return $"{m}m";
+        }
+    }
+
+    void FormatPhoneNumberWithCanadianCode()
+    {
+        if (!string.IsNullOrWhiteSpace(_newHospital.Phone) && _newHospital.Phone.Length == 10)
+        {
+            // Converts 5142888201 to +1-(514)-288-8201
+            _newHospital.Phone = $"+1-({_newHospital.Phone.Substring(0, 3)})-{_newHospital.Phone.Substring(3, 3)}-{_newHospital.Phone.Substring(6)}";
+        }
+    }
+
+    private void ChangePage(int page)
+    {
+        _currentPage = page;
     }
 }

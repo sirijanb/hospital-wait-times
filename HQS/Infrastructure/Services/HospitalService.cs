@@ -158,9 +158,9 @@ namespace HQS.Infrastructure.Services
             hospital.AvailableBeds = payload.AvailableBeds;
             hospital.QueueLength = payload.QueueLength;
             hospital.WaitTimeMinutes = payload.WaitTimeMinutes;
-            
+
             await _db.SaveChangesAsync();
-            
+
             //signalR code to notify frontend on public website
             await _hub.Clients.All.SendAsync("HospitalDataUpdated", payload);
         }
@@ -213,5 +213,34 @@ namespace HQS.Infrastructure.Services
             await _db.SaveChangesAsync();
         }
 
+        // For KPIs
+
+        public async Task<int> GetTotalCountOfHospitals()
+        {
+            return await _db.Hospitals.CountAsync();
+        }
+
+        public async Task<int> GetTotalCountOfHospitalReps()
+        {
+            return await _db.HospitalRepresentatives.CountAsync();
+        }
+
+        public async Task<int> GetTotalCountOfApprovedHospitalReps()
+        {
+            return await _db.HospitalRepresentatives.CountAsync(r => r.IsApproved);
+        }
+
+        public async Task<int> GetTotalCountOfPendingHospitalReps()
+        {
+            return await _db.HospitalRepresentatives.CountAsync(r => !r.IsApproved);
+        }
+
+        public async Task<List<string>> GetHospitalsAddressAsync()
+        {
+            return await _db.Hospitals
+                .OrderBy(h => h.Name)
+                .Select(h => h.Address)
+                .ToListAsync();
+        }
     }
 }

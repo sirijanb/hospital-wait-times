@@ -64,7 +64,7 @@
 
 @code {
     @* private List<HospitalLocateDto>? _hospitals; *@
-        private List<Hospital>? _hospitals;
+    private List<Hospital>? _hospitals;
     private Guid? _selectedHospitalId;
     @* private string _selectedHospitalId = string.Empty; *@
 
@@ -144,6 +144,9 @@
         ServiceType.UPCC => "service-upcc",
         ServiceType.Pediatrics => "service-pediatrics",
         ServiceType.Trauma => "service-trauma",
+        ServiceType.Cardiology => "service-cardiology",
+        ServiceType.CareHome => "service-carehome",
+        ServiceType.Rehab => "service-rehab",
         _ => "service-default"
     };
 }

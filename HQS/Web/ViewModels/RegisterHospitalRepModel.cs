@@ -18,5 +18,7 @@ public class RegisterHospitalRepModel
     public string HospitalId { get; set; } = string.Empty;
 
     [Required]
+    [RegularExpression(@"^[0-9]{10}$", 
+    ErrorMessage = "Phone must be exactly 10 digits with no spaces or symbols (e.g., 5142888201)")]
     public string ContactNumber { get; set; } = string.Empty;
 }
