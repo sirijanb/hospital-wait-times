@@ -8,7 +8,9 @@
 </div>
 
 <div class="@NavMenuCssClass nav-scrollable" @onclick="ToggleNavMenu">
-    <nav class="flex-column">
+    @* <nav class="flex-column"> *@
+        <nav class="flex-column d-flex justify-content-between" style="height: calc(100vh - 3.5rem);"> @* Ensure full height *@
+            <div class="flex-grow-1">
         <AuthorizeView>
             <NotAuthorized>
                 <div class="nav-item px-3">
@@ -63,6 +65,13 @@
                 </div>
             </Authorized>
         </AuthorizeView>
+</div>
+        <!-- Pushed to the bottom -->
+        <div class="nav-item px-3 mb-3">
+            <NavLink class="nav-link" href="/" Match="NavLinkMatch.All">
+                <span class="oi oi-globe" aria-hidden="true"></span> Public View
+            </NavLink>
+        </div>
     </nav>
 </div>
 

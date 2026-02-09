@@ -259,6 +259,28 @@ a,
     border-right: 1px solid #ddd;
 }
 
+/* Mobile adjustments (Screens smaller than 768px) */
+@media (max-width: 768px) {
+    .results-container {
+        /* Switch to a single 100% width column */
+        grid-template-columns: 100%; 
+        /* Optional: Adjust height for mobile if needed */
+        height: auto; 
+        margin-bottom: 20px; 
+    }
+
+    .results-map {
+        /* Completely hide the map */
+        display: none !important;
+    }
+    
+    .results-2-hospital-scroll-container {
+        /* Ensure the list takes full height if the map is gone */
+        height: 70vh; 
+        overflow-y: auto;
+    }
+}
+
 /* .hospital-list-card {
     display: flex;
     gap: 10px;
