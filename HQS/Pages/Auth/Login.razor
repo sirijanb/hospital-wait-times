@@ -27,7 +27,7 @@
 
 @if (!string.IsNullOrWhiteSpace(_error))
 {
-    <p style="color:red">@_error</p>
+    <p class="text-danger mt-2">@_error</p>
 }
 
 @code {
@@ -42,7 +42,7 @@
 
         if (errorMessage == "unapproved")
         {
-            _error = "Your account is not approved yet. Please contact an admin.";
+            _error = "Your account is not approved yet. Please contact the admin.";
         }
         else if (errorMessage == "invalidcredentials")
         {

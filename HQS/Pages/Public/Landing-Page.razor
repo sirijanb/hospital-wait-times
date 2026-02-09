@@ -20,7 +20,7 @@
     <div class="d-flex gap-2 align-items-start">
         <div class="address-box position-relative flex-grow-1">
             <input class="form-control" placeholder="Enter your current location" value="@AddressState.Address"
-                @oninput="OnAddressInput" />
+                   @oninput="OnAddressInput" />
 
             @if (!string.IsNullOrWhiteSpace(AddressState.Address))
             {
@@ -76,8 +76,8 @@
     private List<AddressSuggestion> _suggestions = new();
     private CancellationTokenSource? _debounceCts;
 
-    private double userLat = 43.7769588;
-    private double userLng = -79.7388075;
+    @* private double userLat = 43.7769588; //For local testing *@
+    @* private double userLng = -79.7388075; //For local testing *@
 
     private string? _error;
     @* private async Task OnAddressInput(ChangeEventArgs e)
@@ -152,19 +152,20 @@
         );
     }
 
-    private void DetectLocation()
+    private async Task DetectLocation()
     {
         try
         {
-            @* var coords = await JS.InvokeAsync<GeoPosition>("locationInterop.getCurrentLocation");
+            var coords = await JS.InvokeAsync<GeoPosition>("locationInterop.getCurrentLocation");
 
             Navigation.NavigateTo(
             $"/search-results-map?lat={coords.Lat}&lon={coords.Lng}"
-            ); *@
+            ); 
 
+            /* For local testing
             Navigation.NavigateTo(
             $"/search-results-map?lat={userLat}&lon={userLng}"
-            );
+            ); */
         }
         catch (Exception ex)
         {
