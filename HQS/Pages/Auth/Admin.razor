@@ -5,81 +5,7 @@
 @inject HospitalService HospitalService
 @attribute [Authorize(Roles = "MasterAdmin")]
 
-@* <h3>Master Admin Dashboard</h3>
-
-<p>Welcome, Admin 👋</p>
-
-<ul>
-    <li>
-        <a href="/admin/hospitals">View All Hospitals</a>
-    </li>
-    <li>
-        <a href="/admin/hospital-reps">View All Hospital Representatives</a>
-    </li>
-</ul> *@
-
-@* <div class="admin-dashboard">
-    <h2>Master Admin Dashboard</h2>
-    <p class="subtitle">Welcome back, Admin 👋</p>
-
-    <div class="card-grid">
-        <div class="admin-card">
-            <h4>🏥 Hospitals</h4>
-            <p>Manage registered hospitals and their details.</p>
-            <a class="btn" href="/admin/hospitals">View Hospitals</a>
-        </div>
-
-        <div class="admin-card">
-            <h4>👨‍⚕️ Hospital Representatives</h4>
-            <p>View and manage hospital representatives.</p>
-            <a class="btn" href="/admin/hospital-reps">View Reps</a>
-        </div>
-
-        <div class="admin-card muted">
-            <h4>📊 Analytics</h4>
-            <p>Coming soon: usage and queue analytics.</p>
-            <span class="btn disabled">Coming Soon</span>
-        </div>
-    </div>
-</div> *@
-
-@* <h3>Master Admin</h3>
-<p>Choose an action:</p>
-
-<div class="admin-actions">
-
-    <div class="action-card">
-        <div class="action-title">Hospitals</div>
-        <div class="action-desc">
-            View, search, and manage all registered hospitals.
-        </div>
-        <a href="/admin/hospitals" class="action-link">
-            Manage Hospitals →
-        </a>
-    </div>
-
-    <div class="action-card">
-        <div class="action-title">Hospital Representatives</div>
-        <div class="action-desc">
-            Manage hospital reps and their assignments.
-        </div>
-        <a href="/admin/hospital-reps" class="action-link">
-            Manage Reps →
-        </a>
-    </div>
-
-    <div class="action-card">
-        <div class="action-title">Approvals</div>
-        <div class="action-desc">
-            Review pending hospital and representative requests.
-        </div>
-        <span class="action-link disabled">
-            Coming Soon
-        </span>
-    </div>
-
-</div> *@
-<h3>Master Admin Dashboard</h3>
+<h3>Admin Dashboard</h3>
 
 <hr />
 <div class="container mt-4">
@@ -91,32 +17,21 @@
     <div class="row g-3 mb-2">
 
         <!-- Total Hospitals -->
-        <div class="col-md-6 col-lg-3">
+        <div class="col-md-6 col-lg-6">
             <div class="card text-bg-primary shadow-sm h-100">
                 <div class="card-body">
-                    <h6 class="card-title ">Total Hospitals</h6>
+                    <h6 class="card-title">Total Hospitals</h6>
                     <h2 class="fw-bold">@TotalHospitals</h2>
                     <small class="opacity-75">Registered in system</small>
                 </div>
             </div>
         </div>
 
-        <!-- Hospitals by Province -->
-        @* <div class="col-md-6 col-lg-3">
-            <div class="card text-bg-warning shadow-sm h-100">
-                <div class="card-body">
-                    <h6 class="card-title text-uppercase small">Pending Reps</h6>
-                    <h2 class="fw-bold">@PendingReps</h2>
-                    <small class="opacity-75">Awaiting approval</small>
-                </div>
-            </div>
-        </div>  *@
-
         <!-- Approved Reps -->
-        <div class="col-md-6 col-lg-3">
+        <div class="col-md-6 col-lg-6">
             <div class="card text-bg-success shadow-sm h-100">
                 <div class="card-body">
-                    <h6 class="card-title ">Total Representatives</h6>
+                    <h6 class="card-title">Total Representatives</h6>
                     <h2 class="fw-bold">@TotalReps</h2>
                     <small class="opacity-75">@ApprovedReps Active | @PendingReps Pending</small>
                 </div>
@@ -168,7 +83,7 @@
         <div class="col-md-6 col-lg-4">
             <div class="card shadow-sm h-100">
                 <div class="card-header fw-bold">
-                    Add Hospitals
+                    Add Hospital
                 </div>
                 <div class="card-body">
                     @* <h5 class="card-title">Hospitals</h5> *@

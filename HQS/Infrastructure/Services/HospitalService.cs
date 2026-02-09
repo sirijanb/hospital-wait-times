@@ -242,5 +242,11 @@ namespace HQS.Infrastructure.Services
                 .Select(h => h.Address)
                 .ToListAsync();
         }
+
+        // For scraped data
+        public async Task<List<ScrapedData>> GetScrapedDataAsync()
+        {
+            return await _db.ScrapedHospitalData.AsNoTracking().ToListAsync();
+        }
     }
 }

@@ -9,7 +9,10 @@
 <div class="resources-main-container">
     <section>
         <h3>Empanelled Hospitals</h3>
-
+        <p>
+            Hospitals associated with <strong>ProxyCare</strong> ensure that the users and patients
+            are provided with accurate real-time data related in order to reduce instances of mishaps and deaths.
+        </p>
         @if (_loading)
         {
             <p>Loading hospitals...</p>
@@ -30,13 +33,13 @@
 
                                 <!-- Thumbnail -->
                                 <img src="@hospital.ImagePath" class="card-img-top edit-hospital-thumb" alt="@hospital.Name"
-                                    onerror="this.src='/hospital-images/hospital-placeholder.png'" />
+                                     onerror="this.src='/hospital-images/hospital-placeholder.png'" />
 
                                 <div class="card-body d-flex flex-column">
 
                                     <!-- Name + Open Hours -->
                                     <div class="d-flex justify-content-between align-items-start">
-                                        <h6 class="card-title mb-1">@hospital.Name.Truncate(30)</h6>
+                                        <h6 class="card-title mb-1">@hospital.Name</h6>
 
                                         @* <span class="badge @GetOpenHoursBadgeClass(hospital.OpenHours)">
                                             @hospital.OpenHours
@@ -74,11 +77,11 @@
                                     <!-- Buttons -->
                                     <div class="resources-card-actions">
                                         <button class="resources-btn-light" @onclick="() => OpenDirections(hospital)"
-                                            @onclick:stopPropagation="true">🗺 Directions</button>
+                                                @onclick:stopPropagation="true">Directions</button>
                                         @if (!string.IsNullOrWhiteSpace(hospital.Website))
                                         {
-                                            <button class="resources-btn-light" @onclick="() => OpenWebsite(hospital)"
-                                                @onclick:stopPropagation="true">🌐 Website</button>
+                                            <button class="resources-btn-primary" @onclick="() => OpenWebsite(hospital)"
+                                                    @onclick:stopPropagation="true">Website</button>
                                         }
                                     </div>
                                 </div>
@@ -91,7 +94,7 @@
             <div class="pagination-controls d-flex justify-content-center align-items-center gap-2 mt-1 mb-2">
 
                 <button class="btn btn-outline-secondary" disabled="@(_currentPage == 1)"
-                    @onclick="() => ChangePage(_currentPage - 1)">
+                        @onclick="() => ChangePage(_currentPage - 1)">
                     Prev
                 </button>
 
@@ -100,7 +103,7 @@
                 </span>
 
                 <button class="btn btn-outline-secondary" disabled="@(_currentPage == TotalPages)"
-                    @onclick="() => ChangePage(_currentPage + 1)">
+                        @onclick="() => ChangePage(_currentPage + 1)">
                     Next
                 </button>
 
@@ -159,7 +162,7 @@
     {
         if (h.Latitude == null || h.Longitude == null)
             return;
-
+        
         var url = $"https://www.google.com/maps/dir/?api=1&destination={h.Latitude},{h.Longitude}";
         @* Navigation.NavigateTo(url, true); // true = open new tab *@
         await JS.InvokeVoidAsync("window.open", url, "_blank");

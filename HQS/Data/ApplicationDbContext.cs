@@ -16,7 +16,8 @@ namespace HQS.Infrastructure.Data
 
         public DbSet<Hospital> Hospitals => Set<Hospital>();
         public DbSet<HospitalRep> HospitalRepresentatives => Set<HospitalRep>();
-
+        public DbSet<ScrapedData> ScrapedHospitalData {get; set;}
+        
         protected override void OnModelCreating(ModelBuilder builder)
         {
             base.OnModelCreating(builder);

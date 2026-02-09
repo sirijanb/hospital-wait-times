@@ -28,9 +28,24 @@
 }
 
 .resources-btn-light {
-    background: #eef1ff;
+    /* background: #eef1ff;
     border-radius: 5px;
     padding: 12px;
     font-weight: 400;
+    border: none; */
+
+    background: #eef1ff;
+    border-radius: 12px;
+    padding: 12px;
+    font-weight: 700;
+    border: none;
+}
+
+.resources-btn-primary {
+    background: #9aa5f6;
+    border-radius: 12px;
+    padding: 12px;
+    font-weight: 800;
+    color: white;
     border: none;
 }
