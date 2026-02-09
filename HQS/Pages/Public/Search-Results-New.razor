@@ -8,6 +8,7 @@
 @using Microsoft.AspNetCore.Components
 @using System.Runtime.InteropServices
 @using Microsoft.AspNetCore.SignalR.Client
+@using System.Threading.Tasks
 
 @inject IJSRuntime JS
 @inject IHospitalLocateService HospitalLocateService
@@ -19,7 +20,7 @@
 <div class="d-flex gap-1 align-items-start">
     <div class="address-box position-relative flex-grow-1 ms-2 me-3">
         <input class="form-control" placeholder="Enter your address" value="@AddressState.Address"
-            @oninput="OnAddressInput" />
+               @oninput="OnAddressInput" />
 
         @if (!string.IsNullOrWhiteSpace(AddressState.Address))
         {
@@ -160,14 +161,14 @@
 
                         <div class="results-2-card-actions">
                             <button class="results-2-btn-light" @onclick="() => OpenDirections(h)"
-                                @onclick:stopPropagation="true">DIRECTIONS</button>
+                                    @onclick:stopPropagation="true">DIRECTIONS</button>
                             @if (!string.IsNullOrWhiteSpace(h.Website))
                             {
                                 <button class="results-2-btn-light" @onclick="() => OpenWebsite(h)"
-                                    @onclick:stopPropagation="true">WEBSITE</button>
+                                        @onclick:stopPropagation="true">WEBSITE</button>
                             }
                             <button class="results-2-btn-primary" @onclick:stopPropagation="true"
-                                @onclick="() => ToggleExpand(h.HospitalId)">
+                                    @onclick="() => ToggleExpand(h.HospitalId)">
                                 @(isExpanded ? "HIDE INFO" : "MORE INFO")
                             </button>
                         </div>
@@ -228,11 +229,13 @@
     private List<Hospital>? _hospitals = new List<Hospital>();
     private List<Hospital> _visibleHospitals = new();
 
+    private List<ScrapedData> _scrapedData = new List<ScrapedData>();
+
     private const int PageSize = 5;
     private int _currentIndex = 0;
 
-    private double userLat = 43.7769588;
-    private double userLng = -79.7388075;
+    @* private double userLat = 43.7769588; //For local testing *@
+    @* private double userLng = -79.7388075;//For local testing *@
 
     private bool CanLoadMore => _currentIndex < _hospitals?.Count;
     private Guid? _selectedHospitalId;
@@ -253,10 +256,25 @@
 "General" };
 
     private HubConnection? _hubConnection;
-
+    @* private Timer? _timer; *@
     protected override async Task OnInitializedAsync()
     {
         _hospitals = await hs.GetAllHospitalsAsync();
+        _scrapedData = await hs.GetScrapedDataAsync();
+        // Start a background loop instead of a standard Timer
+        _ = RunPollingForScrapedData();
+        @* _timer = new Timer(
+            async _ =>{
+                await InvokeAsync(async()=>{
+                    await SetTimesFromScrapedData();
+                    StateHasChanged();
+                });
+            },
+            null,
+            TimeSpan.FromSeconds(50), //first refresh
+            TimeSpan.FromSeconds(20) //interval
+        ); *@
+
         @* _hospitals = await HospitalLocateService.GetNearbyHospitalsAsync(Lat, Lon, _radiusInKm * 1000, "Canada"); *@
         @* if (_hospitals is not null && _hospitals.Count > 0)
         {
@@ -303,6 +321,7 @@
 
     async Task LoadNextBatch()
     {
+        _error = string.Empty;
         if (_hospitals is not null && _hospitals.Count > 0)
         {
             var next = _hospitals
@@ -434,11 +453,16 @@
     {
         try
         {
-            //var coords = await JS.InvokeAsync<GeoPosition>("locationInterop.getCurrentLocation");
+            /* For local testing
+            AddressState.Address = string.Empty;
+            AddressState.Lat = userLat;
+            AddressState.Lon = userLng;*/
+
+            var coords = await JS.InvokeAsync<GeoPosition>("locationInterop.getCurrentLocation");
 
             AddressState.Address = string.Empty;
-            AddressState.Lat = userLat;//coords.Lat;
-            AddressState.Lon = userLng;//coords.Lng;
+            AddressState.Lat = coords.Lat;
+            AddressState.Lon = coords.Lng;
 
             _suggestions.Clear();
             _hospitals?.Clear();
@@ -536,8 +560,10 @@
         if (h.Latitude == null || h.Longitude == null)
             return;
 
-        @* var url = $"https://www.google.com/maps/dir/?api=1&destination={h.Latitude},{h.Longitude}"; *@
-        var url = $"https://www.google.com/maps/dir/?api=1&origin={userLat},{userLng}&destination={h.Latitude},{h.Longitude}";
+        var url = $"https://www.google.com/maps/dir/?api=1&destination={h.Latitude},{h.Longitude}";
+
+        /* For local testing 
+        var url = $"https://www.google.com/maps/dir/?api=1&origin={userLat},{userLng}&destination={h.Latitude},{h.Longitude}"; */
 
         @* Navigation.NavigateTo(url, true); // true = open new tab *@
         await JS.InvokeVoidAsync("window.open", url, "_blank");
@@ -558,6 +584,8 @@
 
     string FormatWaitTime(int minutes)
     {
+        if(minutes <= 0)
+            return "N/A";
         int h = minutes / 60;
         int m = minutes % 60;
         if (h > 0)
@@ -572,7 +600,6 @@
         {
             return $"{m}m";
         }
-        @* return h > 0 ? $"{h}h {m} min" : $"{m} min"; *@
     }
     string GetOpenHoursBadgeClass(string? openHours)
     {
@@ -614,4 +641,58 @@
         if (_hubConnection != null)
             await _hubConnection.DisposeAsync();
     }
+
+    // Apply times from scraped data
+    private void SetTimesFromScrapedData()
+    {
+        if (_hospitals != null && _scrapedData != null)
+        {
+            foreach (Hospital h in _hospitals)
+            {
+                var key = NormalizeHospitalName(h.Name);
+
+                var match = _scrapedData.FirstOrDefault(s =>
+                NormalizeHospitalName(s.HospitalName) == key ||
+                NormalizeHospitalName(s.HospitalName).Contains(key) ||
+                key.Contains(NormalizeHospitalName(s.HospitalName))
+                );
+
+                if (match != null)
+                {
+                    h.WaitTimeMinutes = match.WaitTimeMinutes;
+                }
+            }
+        }
+    }
+
+    private string NormalizeHospitalName(string name)
+    {
+        return name
+            .ToLowerInvariant()
+            .Replace("hospital", "")
+            .Replace("health", "")
+            .Replace("(", "")
+            .Replace(")", "")
+            .Trim();
+    }
+
+    private async Task RunPollingForScrapedData()
+    {
+        @* Console.WriteLine("RunPollingForScrapedData-1"); *@
+        using var timer = new PeriodicTimer(TimeSpan.FromMinutes(5));
+
+        //wait for first refresh
+        await Task.Delay(TimeSpan.FromSeconds(10));
+        @* Console.WriteLine("RunPollingForScrapedData-2"); *@
+        while (await timer.WaitForNextTickAsync())
+        {
+            _scrapedData = await hs.GetScrapedDataAsync();
+
+            SetTimesFromScrapedData();
+
+            // 3. Await the UI refresh
+            await InvokeAsync(StateHasChanged);
+        }
+    }
+
 }
