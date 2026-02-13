@@ -32,11 +32,12 @@
         <a class="dismiss">🗙</a>
     </div>
 
-    <script src="_framework/blazor.server.js"></script>
+    @* <script src="_framework/blazor.server.js"></script> //moved to end to avoid page refresh exception issue *@ 
     <script src="~/js/location.js"></script>
     <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
     <script src="js/mapInterop.js"></script>
     <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
+    <script src="_framework/blazor.server.js"></script>
 
 </body>
 

@@ -71,9 +71,13 @@
                     }
                     else
                     {
-                        <img src="@_imagePreview" class="img-thumbnail w-75 mb-2" />
+                        @* <img src="@_imagePreview" class="img-thumbnail w-75 mb-2" /> //throttles DOM
+                        When you apply w-75 (width: 75%), the browser's rendering engine must calculate the image's dimensions relative to 
+                        its parent container before it can draw the preview. If _imagePreview contains a Base64 string (common for instant previews), 
+                        the sheer size of that string can cause the browser to hang during this "re-flow" or "re-paint" phase*@
+                        <img src="@_imagePreview" class="img-thumbnail img-fluid mb-2" style="max-width: 75%;" />
                     }
-                    <InputFile OnChange="OnImageSelected" />
+                    <InputFile OnChange="OnImageSelected2" accept="image/png, image/jpeg"/>
                 </div>
             </div>
 
@@ -160,6 +164,23 @@
         await stream.ReadAsync(buffer);
         _imagePreview = $"data:{_imageFile.ContentType};base64,{Convert.ToBase64String(buffer)}";
     }
+
+    private async Task OnImageSelected2(InputFileChangeEventArgs e)
+    {
+        _imageFile = e.File;
+        if(_imageFile!=null)
+        {
+            using var stream = _imageFile.OpenReadStream(maxAllowedSize: 5_000_000);
+            using var ms = new MemoryStream();
+
+            await stream.CopyToAsync(ms);
+
+            var buffer = ms.ToArray();
+
+            _imagePreview = $"data:{_imageFile.ContentType};base64,{Convert.ToBase64String(buffer)}";
+        }
+    }
+
 
     private void OnServiceToggle(ServiceType service, object? value)
     {
