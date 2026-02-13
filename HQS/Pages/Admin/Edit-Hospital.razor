@@ -84,12 +84,14 @@ else
                         else if (!string.IsNullOrWhiteSpace(_hospital.ImagePath))
                         {
                             <img src="@_hospital.ImagePath" class="img-thumbnail w-75 mb-2" />
+                            //throttles DOM
+                            @* <img src="@_hospital.ImagePath" class="img-thumbnail img-fluid mb-2" style="max-width: 75%;" /> *@
                         }
                         else
                         {
                             <p class="text-muted fst-italic">No image uploaded</p>
                         }
-                        <InputFile OnChange="OnImageSelected" />
+                        <InputFile OnChange="OnImageSelected2" />
                     </div>
                 </div>
 
@@ -183,6 +185,22 @@ else
         var buffer = new byte[_newImage.Size];
         await stream.ReadAsync(buffer);
         _imagePreview = $"data:{_newImage.ContentType};base64,{Convert.ToBase64String(buffer)}";
+    }
+
+    private async Task OnImageSelected2(InputFileChangeEventArgs e)
+    {
+        _newImage = e.File;
+        if (_newImage != null)
+        {
+            using var stream = _newImage.OpenReadStream(maxAllowedSize: 5_000_000);
+            using var ms = new MemoryStream();
+
+            await stream.CopyToAsync(ms);
+
+            var buffer = ms.ToArray();
+
+            _imagePreview = $"data:{_newImage.ContentType};base64,{Convert.ToBase64String(buffer)}";
+        }
     }
 
     private async Task UpdateHospital()

@@ -31,10 +31,10 @@ namespace HQS.Infrastructure.Services
                 .ToListAsync();
         }
 
-        // public async Task<List<Hospital>> GetAllHospitalsAsync()
-        //     => await _db.Hospitals.AsNoTracking().ToListAsync();
-
         public async Task<List<Hospital>> GetAllHospitalsAsync()
+            => await _db.Hospitals.AsNoTracking().ToListAsync();
+
+        public async Task<List<Hospital>> GetAllHospitalsAsyncX()
         {
             var hospitals = new List<Hospital>();
             var query = _db.Hospitals.AsNoTracking().AsAsyncEnumerable();

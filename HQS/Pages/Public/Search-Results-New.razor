@@ -86,7 +86,8 @@
 
         @* </div> *@
         <div class="results-2-hospital-scroll-container">
-            @if (_hospitals == null || _hospitals.Count == 0)
+            @if (_hospitals == null || _hospitals.Count == 0 || _visibleHospitals == null || _visibleHospitals.Count ==
+                                    0)
             {
                 <p>Loading hospitals...</p>
             }
@@ -228,8 +229,7 @@
 @code {
     private List<Hospital>? _hospitals = new List<Hospital>();
     private List<Hospital> _visibleHospitals = new();
-
-    private List<ScrapedData> _scrapedData = new List<ScrapedData>();
+    private List<ScrapedData>? _scrapedData = new List<ScrapedData>();
 
     private const int PageSize = 5;
     private int _currentIndex = 0;
@@ -249,6 +249,9 @@
 
     private List<AddressSuggestion> _suggestions = new();
     private string? _error;
+    private bool _mapInitialized = false;
+    private bool _dataLoaded = false;
+
     private bool toggleOpen247;
     @* private int _radiusInKm = 100; *@
     @* private string? _selectedService; *@
@@ -259,30 +262,24 @@
     @* private Timer? _timer; *@
     protected override async Task OnInitializedAsync()
     {
+        _dataLoaded = _mapInitialized = false;
+
         _hospitals = await hs.GetAllHospitalsAsync();
+
         _scrapedData = await hs.GetScrapedDataAsync();
+
         // Start a background loop instead of a standard Timer
         _ = RunPollingForScrapedData();
-        @* _timer = new Timer(
-            async _ =>{
-                await InvokeAsync(async()=>{
-                    await SetTimesFromScrapedData();
-                    StateHasChanged();
-                });
-            },
-            null,
-            TimeSpan.FromSeconds(50), //first refresh
-            TimeSpan.FromSeconds(20) //interval
-        ); *@
 
         @* _hospitals = await HospitalLocateService.GetNearbyHospitalsAsync(Lat, Lon, _radiusInKm * 1000, "Canada"); *@
-        @* if (_hospitals is not null && _hospitals.Count > 0)
+
+        if (_hospitals != null && _hospitals.Count > 0)
         {
             foreach (var h in _hospitals)
             {
                 h.DistanceKm = GeoUtils.DistanceKm(
-                AddressState.Lat,
-                AddressState.Lon,
+                Lat,
+                Lon,
                 h.Latitude ?? 0.0,
                 h.Longitude ?? 0.0
                 );
@@ -296,19 +293,22 @@
             _visibleHospitals.Clear();
             _currentIndex = 0;
 
-            await LoadNextBatch();
+            _dataLoaded = true;
+            await LoadNextBatch();//hot fix --- huh!!!
+
+            @* await LoadNextBatch(); *@ // new sol, commenting this, possible reason of Azure fail
         }
         else
         {
             _error = "Unable to fetch data. Please try again.";
-        } *@ //initMap should go first, failing on Azure
+        } //initMap should go first, failing on Azure -> new sol , so uncommenting if-else block
 
         await InitSignalRAsync(); // for signalR
 
         @* PopulatePins(); *@
     }
 
-    void PopulatePins()
+    @* void PopulatePins()
     {
         if (_hospitals is not null)
         {
@@ -317,12 +317,12 @@
             _hospitals
             );
         }
-    }
+    } *@
 
     async Task LoadNextBatch()
     {
         _error = string.Empty;
-        if (_hospitals is not null && _hospitals.Count > 0)
+        if (_hospitals != null && _hospitals.Count > 0)
         {
             var next = _hospitals
             .Skip(_currentIndex)
@@ -331,9 +331,12 @@
 
             _visibleHospitals.AddRange(next);
             _currentIndex += next.Count;
-            Console.WriteLine($">> _visibleHospitals: {_visibleHospitals.Count}");
-            // Update map with only visible hospitals
-            await JS.InvokeVoidAsync("mapInterop.addHospitals", _visibleHospitals);
+
+            if (_mapInitialized)// new sol, adding this, to rectify Azure fail
+            {
+                // Update map with only visible hospitals
+                await JS.InvokeVoidAsync("mapInterop.addHospitals", _visibleHospitals);
+            }
         }
         else
         {
@@ -347,10 +350,16 @@
             return; *@
         if (firstRender)
         {
-            Console.WriteLine($"Got LAT: {Lat} LON: {Lon} aLat: {AddressState.Lat} aLon: {AddressState.Lon}");
             await JS.InvokeVoidAsync("mapInterop.initMap", Lat, Lon);
+            _mapInitialized = true;
 
-            if (_hospitals is not null && _hospitals.Count > 0)
+            if (_dataLoaded)
+            {
+                await LoadNextBatch();
+                StateHasChanged();
+            }
+
+            @* if (_hospitals is not null && _hospitals.Count > 0)
             {
                 foreach (var h in _hospitals)
                 {
@@ -375,8 +384,9 @@
             }
             else
             {
+                Console.WriteLine("~~~~~~> OnAfterRenderAsync - 3 ELSE");
                 _error = "Unable to fetch data. Please try again.";
-            }
+            } *@ // new sol, commenting this, re-structuring related to Azure fail
         }
         @* if (_hospitals is not null)
         {
@@ -402,7 +412,7 @@
     {
         return _selectedHospitalId == h.HospitalId
         ? "results-2-hospital-card-advanced selected"
-        : "results-2-hospital-card-advanced";
+                : "results-2-hospital-card-advanced";
     }
 
     private string GetHospitalImage(Hospital h)
@@ -453,10 +463,10 @@
     {
         try
         {
-            /* For local testing
-            AddressState.Address = string.Empty;
+            //For local testing
+            @* AddressState.Address = string.Empty;
             AddressState.Lat = userLat;
-            AddressState.Lon = userLng;*/
+            AddressState.Lon = userLng; *@
 
             var coords = await JS.InvokeAsync<GeoPosition>("locationInterop.getCurrentLocation");
 
@@ -491,7 +501,7 @@
         AddressState.Lon = address.Lon;
         _suggestions.Clear();
         _hospitals?.Clear();
-
+        
         _selectedHospitalId = _expandedHospitalId = null;//string.Empty;
         StateHasChanged();
         await LoadNewHospitalsAsync();
@@ -499,8 +509,10 @@
 
     private async Task LoadNewHospitalsAsync()
     {
-        _error = "Searching...";
+        @* _error = "Searching..."; *@
+
         _hospitals?.Clear();
+        
         _suggestions.Clear();
         _hospitals = await hs.GetAllHospitalsAsync();
         @* _hospitals = await HospitalLocateService.GetNearbyHospitalsAsync(AddressState.Lat,
@@ -562,8 +574,9 @@
 
         var url = $"https://www.google.com/maps/dir/?api=1&destination={h.Latitude},{h.Longitude}";
 
-        /* For local testing 
-        var url = $"https://www.google.com/maps/dir/?api=1&origin={userLat},{userLng}&destination={h.Latitude},{h.Longitude}"; */
+         //For local testing
+        @* var url = $"https://www.google.com/maps/dir/?api=1&origin={userLat},{userLng}&destination={h.Latitude},{h.Longitude}"; *@
+        
 
         @* Navigation.NavigateTo(url, true); // true = open new tab *@
         await JS.InvokeVoidAsync("window.open", url, "_blank");
@@ -584,7 +597,7 @@
 
     string FormatWaitTime(int minutes)
     {
-        if(minutes <= 0)
+        if (minutes <= 0)
             return "N/A";
         int h = minutes / 60;
         int m = minutes % 60;
@@ -668,22 +681,21 @@
     private string NormalizeHospitalName(string name)
     {
         return name
-            .ToLowerInvariant()
-            .Replace("hospital", "")
-            .Replace("health", "")
-            .Replace("(", "")
-            .Replace(")", "")
-            .Trim();
+        .ToLowerInvariant()
+        .Replace("hospital", "")
+        .Replace("health", "")
+        .Replace("(", "")
+        .Replace(")", "")
+        .Trim();
     }
 
     private async Task RunPollingForScrapedData()
     {
-        @* Console.WriteLine("RunPollingForScrapedData-1"); *@
-        using var timer = new PeriodicTimer(TimeSpan.FromMinutes(5));
+        using var timer = new PeriodicTimer(TimeSpan.FromSeconds(30));
 
         //wait for first refresh
         await Task.Delay(TimeSpan.FromSeconds(10));
-        @* Console.WriteLine("RunPollingForScrapedData-2"); *@
+        
         while (await timer.WaitForNextTickAsync())
         {
             _scrapedData = await hs.GetScrapedDataAsync();
